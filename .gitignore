@@ -37,3 +37,10 @@ database.db
 # Environment
 .env
 .env.local
+
+# Logs
+*.log
+app.log
+
+# Test files
+test_app.py
