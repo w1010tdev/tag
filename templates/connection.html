@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Connection - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Connection with {{ other_user.username }}</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+    
+    <div class="connection-features">
+        <a href="{{ url_for('clipboard', connection_id=connection.id) }}" class="feature-link">
+            <div class="feature-icon">📋</div>
+            <h3>Shared Clipboard</h3>
+            <p>Real-time synchronized text areas</p>
+        </a>
+        <a href="{{ url_for('drawing_game', connection_id=connection.id) }}" class="feature-link">
+            <div class="feature-icon">🎨</div>
+            <h3>Drawing Game</h3>
+            <p>Play Pictionary together</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

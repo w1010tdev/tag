@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Drawing Game - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Drawing Game with {{ other_user.username }}</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back</a>
+    </div>
+    
+    <div class="game-container">
+        <div class="game-status" id="game-status">
+            <p>Ready to play! Click "Start New Round" to begin.</p>
+        </div>
+        
+        <div id="start-screen" class="start-screen">
+            <button onclick="showDrawingSetup()" class="btn btn-primary btn-lg">Start New Round</button>
+        </div>
+        
+        <div id="drawing-setup" class="drawing-setup" style="display: none;">
+            <h3>Enter the word to draw:</h3>
+            <input type="text" id="answer-input" placeholder="Enter a word...">
+            <button onclick="startDrawing()" class="btn btn-primary">Start Drawing</button>
+            <button onclick="cancelSetup()" class="btn btn-secondary">Cancel</button>
+        </div>
+        
+        <div id="drawing-area" class="drawing-area" style="display: none;">
+            <canvas id="drawing-canvas" width="600" height="400"></canvas>
+            <div class="drawing-controls">
+                <button onclick="clearCanvas()" class="btn btn-warning">Clear</button>
+                <input type="color" id="color-picker" value="#000000">
+                <input type="range" id="brush-size" min="1" max="20" value="3">
+            </div>
+        </div>
+        
+        <div id="guessing-area" class="guessing-area" style="display: none;">
+            <canvas id="guess-canvas" width="600" height="400"></canvas>
+            <div class="guess-controls">
+                <div id="guesses-left"></div>
+                <input type="text" id="guess-input" placeholder="Enter your guess...">
+                <button onclick="submitGuess()" class="btn btn-primary">Guess</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+const connectionId = {{ connection.id }};
+const myUserId = {{ current_user.id }};
+const otherUserId = {{ other_user.id }};
+
+let isDrawing = false;
+let isDrawer = false;
+let canvas, ctx, guessCanvas, guessCtx;
+
+// Join drawing room
+socket.emit('join_drawing', { connection_id: connectionId });
+
+// Check if there's an active game
+{% if game %}
+    {% if game.drawer_id == current_user.id %}
+        isDrawer = true;
+        showDrawingArea();
+    {% else %}
+        isDrawer = false;
+        showGuessingArea({{ game.guesses_left }});
+    {% endif %}
+{% endif %}
+
+function showDrawingSetup() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('drawing-setup').style.display = 'block';
+}
+
+function cancelSetup() {
+    document.getElementById('drawing-setup').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'block';
+}
+
+function startDrawing() {
+    const answer = document.getElementById('answer-input').value.trim();
+    if (!answer) {
+        alert('Please enter a word!');
+        return;
+    }
+    
+    socket.emit('drawing_start', {
+        connection_id: connectionId,
+        answer: answer
+    });
+    
+    isDrawer = true;
+    showDrawingArea();
+}
+
+function showDrawingArea() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('drawing-setup').style.display = 'none';
+    document.getElementById('drawing-area').style.display = 'block';
+    document.getElementById('game-status').innerHTML = '<p>You are drawing! Draw your word and let the other player guess.</p>';
+    
+    setupCanvas('drawing-canvas');
+}
+
+function showGuessingArea(guessesLeft) {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('guessing-area').style.display = 'block';
+    document.getElementById('guesses-left').textContent = `Guesses left: ${guessesLeft || 3}`;
+    document.getElementById('game-status').innerHTML = '<p>The other player is drawing. Watch and guess!</p>';
+    
+    guessCanvas = document.getElementById('guess-canvas');
+    guessCtx = guessCanvas.getContext('2d');
+}
+
+function setupCanvas(canvasId) {
+    canvas = document.getElementById(canvasId);
+    ctx = canvas.getContext('2d');
+    
+    canvas.addEventListener('mousedown', startDrawingEvent);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+function startDrawingEvent(e) {
+    isDrawing = true;
+    draw(e);
+}
+
+function draw(e) {
+    if (!isDrawing || !isDrawer) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const color = document.getElementById('color-picker').value;
+    const size = document.getElementById('brush-size').value;
+    
+    ctx.lineWidth = size;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    
+    // Send drawing data
+    socket.emit('drawing_data', {
+        connection_id: connectionId,
+        drawing: { x, y, color, size, type: 'draw' }
+    });
+}
+
+function stopDrawing() {
+    isDrawing = false;
+    ctx.beginPath();
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+}
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    socket.emit('drawing_data', {
+        connection_id: connectionId,
+        drawing: { type: 'clear' }
+    });
+}
+
+function submitGuess() {
+    const guess = document.getElementById('guess-input').value.trim();
+    if (!guess) return;
+    
+    socket.emit('drawing_guess', {
+        connection_id: connectionId,
+        guess: guess
+    });
+    
+    document.getElementById('guess-input').value = '';
+}
+
+// Socket events
+socket.on('game_started', function(data) {
+    if (data.drawer_id !== myUserId) {
+        showGuessingArea(3);
+    }
+});
+
+socket.on('drawing_update', function(data) {
+    if (!isDrawer && guessCtx) {
+        const d = data.drawing;
+        if (d.type === 'clear') {
+            guessCtx.clearRect(0, 0, guessCanvas.width, guessCanvas.height);
+        } else {
+            guessCtx.lineWidth = d.size;
+            guessCtx.lineCap = 'round';
+            guessCtx.strokeStyle = d.color;
+            guessCtx.lineTo(d.x, d.y);
+            guessCtx.stroke();
+            guessCtx.beginPath();
+            guessCtx.moveTo(d.x, d.y);
+        }
+    }
+});
+
+socket.on('guess_result', function(data) {
+    if (data.correct) {
+        alert('Correct! The answer was: ' + data.answer);
+        location.reload();
+    } else if (data.game_over) {
+        alert('Game over! The answer was: ' + data.answer);
+        location.reload();
+    } else {
+        alert('Wrong guess! Try again.');
+        const guessesLeft = parseInt(document.getElementById('guesses-left').textContent.split(':')[1]) - 1;
+        document.getElementById('guesses-left').textContent = `Guesses left: ${guessesLeft}`;
+    }
+});
+</script>
+{% endblock %}

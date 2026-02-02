@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1>Welcome to Social Connect</h1>
+        <p class="subtitle">Connect with friends and enjoy interactive features together</p>
+        <div class="cta-buttons">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary">Register</a>
+        </div>
+    </div>
+</div>
+
+<div class="features">
+    <div class="container">
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Easy Connections</h3>
+                <p>Share your unique invite token to connect with friends instantly</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Shared Clipboard</h3>
+                <p>Real-time synchronized text areas for seamless collaboration</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Drawing Game</h3>
+                <p>Play Pictionary-style games with your connections</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

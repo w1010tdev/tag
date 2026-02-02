@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <h1>Welcome, {{ current_user.username }}!</h1>
+    
+    <div class="dashboard-section">
+        <h2>Your Invite Token</h2>
+        <div class="token-card">
+            <p>Share this link with others to connect:</p>
+            <div class="token-display">
+                <input type="text" id="invite-link" readonly 
+                       value="{{ request.url_root }}connect/{{ user_token }}">
+                <button onclick="copyToken()" class="btn btn-secondary">Copy</button>
+            </div>
+            <button onclick="refreshToken()" class="btn btn-warning">Refresh Token</button>
+            <p class="token-note">⚠️ Token is one-time use and will be invalidated after someone uses it</p>
+        </div>
+    </div>
+    
+    <div class="dashboard-section">
+        <h2>Your Connections</h2>
+        {% if connections %}
+        <div class="connections-grid">
+            {% for connection in connections %}
+            <div class="connection-card">
+                <h3>{{ connection.other_username }}</h3>
+                <p class="connection-date">Connected: {{ connection.created_at }}</p>
+                <div class="connection-actions">
+                    <a href="{{ url_for('clipboard', connection_id=connection.id) }}" 
+                       class="btn btn-primary btn-sm">📋 Clipboard</a>
+                    <a href="{{ url_for('drawing_game', connection_id=connection.id) }}" 
+                       class="btn btn-secondary btn-sm">🎨 Drawing</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No connections yet. Share your invite token to connect with others!</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyToken() {
+    const input = document.getElementById('invite-link');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copied to clipboard!');
+}
+
+function refreshToken() {
+    if (confirm('Are you sure? Your current token will be invalidated.')) {
+        fetch('{{ url_for("refresh_token") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+</script>
+{% endblock %}
