@@ -85,7 +85,12 @@ function copyToken() {
 function refreshToken() {
     if (confirm('{{ _('Are you sure? Your current token will be invalidated.') }}')) {
         // Get CSRF token from meta tag
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            alert('{{ _('Error: CSRF token not found') }}');
+            return;
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
         
         fetch('{{ url_for("refresh_token") }}', {
             method: 'POST',
