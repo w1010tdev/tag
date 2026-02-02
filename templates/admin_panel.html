@@ -74,16 +74,28 @@
 
 <script>
 function createToken() {
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
     fetch('{{ url_for("create_admin_token") }}', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('{{ _('Failed to create token') }}');
+        }
+        return response.json();
+    })
     .then(data => {
         document.getElementById('new-token-value').value = data.token;
         document.getElementById('new-token').style.display = 'block';
+    })
+    .catch(error => {
+        alert('{{ _('Error:') }} ' + error.message);
     });
 }
 
