@@ -322,8 +322,9 @@ def handle_join_clipboard(data):
     connection_id = data.get('connection_id')
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return
+        return False
     join_room(f'clipboard_{connection_id}')
+    return True
 
 @socketio.on('clipboard_update')
 def handle_clipboard_update(data):
@@ -353,8 +354,9 @@ def handle_join_drawing(data):
     connection_id = data.get('connection_id')
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return
+        return False
     join_room(f'drawing_{connection_id}')
+    return True
 
 @socketio.on('drawing_start')
 def handle_drawing_start(data):
@@ -421,8 +423,9 @@ def handle_join_chat(data):
     connection_id = data.get('connection_id')
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return
+        return False
     join_room(f'chat_{connection_id}')
+    return True
 
 @socketio.on('send_message')
 def handle_send_message(data):
