@@ -89,9 +89,23 @@ function createToken() {
 
 function copyNewToken() {
     const input = document.getElementById('new-token-value');
-    input.select();
-    document.execCommand('copy');
-    alert('Token copied to clipboard!');
+    
+    // Modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('Token copied to clipboard!');
+        }).catch(() => {
+            // Fallback for older browsers
+            input.select();
+            document.execCommand('copy');
+            alert('Token copied to clipboard!');
+        });
+    } else {
+        // Fallback for older browsers
+        input.select();
+        document.execCommand('copy');
+        alert('Token copied to clipboard!');
+    }
 }
 </script>
 {% endblock %}

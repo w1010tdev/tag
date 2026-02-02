@@ -10,9 +10,25 @@ from functools import wraps
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD', 'admin123')  # Change in production
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Require admin password to be set via environment variable
+if not os.environ.get('ADMIN_PASSWORD'):
+    print("\n" + "="*60)
+    print("WARNING: ADMIN_PASSWORD environment variable not set!")
+    print("Using default password 'admin123' for development only.")
+    print("Set ADMIN_PASSWORD environment variable for production.")
+    print("="*60 + "\n")
+app.config['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+# Configure CORS for SocketIO - restrict in production
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*')
+if allowed_origins == '*':
+    print("\n" + "="*60)
+    print("WARNING: CORS is set to allow all origins (*)!")
+    print("Set ALLOWED_ORIGINS environment variable for production.")
+    print("Example: ALLOWED_ORIGINS=https://yourdomain.com")
+    print("="*60 + "\n")
+socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'

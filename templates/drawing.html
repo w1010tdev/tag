@@ -54,6 +54,7 @@ const otherUserId = {{ other_user.id }};
 let isDrawing = false;
 let isDrawer = false;
 let canvas, ctx, guessCanvas, guessCtx;
+let currentGuessesLeft = 3;  // Track guesses in JavaScript
 
 // Join drawing room
 socket.emit('join_drawing', { connection_id: connectionId });
@@ -65,7 +66,8 @@ socket.emit('join_drawing', { connection_id: connectionId });
         showDrawingArea();
     {% else %}
         isDrawer = false;
-        showGuessingArea({{ game.guesses_left }});
+        currentGuessesLeft = {{ game.guesses_left }};
+        showGuessingArea(currentGuessesLeft);
     {% endif %}
 {% endif %}
 
@@ -228,8 +230,8 @@ socket.on('guess_result', function(data) {
         location.reload();
     } else {
         alert('Wrong guess! Try again.');
-        const guessesLeft = parseInt(document.getElementById('guesses-left').textContent.split(':')[1]) - 1;
-        document.getElementById('guesses-left').textContent = `Guesses left: ${guessesLeft}`;
+        currentGuessesLeft--;
+        document.getElementById('guesses-left').textContent = `Guesses left: ${currentGuessesLeft}`;
     }
 });
 </script>
