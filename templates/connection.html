@@ -6,17 +6,22 @@
 <div class="container">
     <div class="page-header">
         <h1>Connection with {{ other_user.username }}</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </div>
     
     <div class="connection-features">
+        <a href="{{ url_for('chat', connection_id=connection.id) }}" class="feature-link">
+            <div class="feature-icon"><i class="fas fa-comments fa-3x"></i></div>
+            <h3>Private Chat</h3>
+            <p>Real-time messaging with emoji</p>
+        </a>
         <a href="{{ url_for('clipboard', connection_id=connection.id) }}" class="feature-link">
-            <div class="feature-icon">📋</div>
+            <div class="feature-icon"><i class="fas fa-clipboard fa-3x"></i></div>
             <h3>Shared Clipboard</h3>
             <p>Real-time synchronized text areas</p>
         </a>
         <a href="{{ url_for('drawing_game', connection_id=connection.id) }}" class="feature-link">
-            <div class="feature-icon">🎨</div>
+            <div class="feature-icon"><i class="fas fa-palette fa-3x"></i></div>
             <h3>Drawing Game</h3>
             <p>Play Pictionary together</p>
         </a>

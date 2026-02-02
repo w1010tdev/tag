@@ -1,8 +1,6 @@
 import sqlite3
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-import json
 
 DATABASE = 'database.db'
 
@@ -62,6 +60,28 @@ def db_init():
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (connection_id) REFERENCES connections (id),
                   FOREIGN KEY (drawer_id) REFERENCES users (id))''')
+    
+    # Chat messages table
+    c.execute('''CREATE TABLE IF NOT EXISTS chat_messages
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  connection_id INTEGER NOT NULL,
+                  sender_id INTEGER NOT NULL,
+                  message TEXT NOT NULL,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  FOREIGN KEY (connection_id) REFERENCES connections (id),
+                  FOREIGN KEY (sender_id) REFERENCES users (id))''')
+    
+    # Read status table (for tracking what each user has read)
+    c.execute('''CREATE TABLE IF NOT EXISTS read_status
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  user_id INTEGER NOT NULL,
+                  connection_id INTEGER NOT NULL,
+                  last_read_chat_id INTEGER DEFAULT 0,
+                  last_read_clipboard_time TIMESTAMP,
+                  last_read_drawing_time TIMESTAMP,
+                  FOREIGN KEY (user_id) REFERENCES users (id),
+                  FOREIGN KEY (connection_id) REFERENCES connections (id),
+                  UNIQUE(user_id, connection_id))''')
     
     conn.commit()
     conn.close()
@@ -406,3 +426,153 @@ class DrawingGame:
                 'correct': False,
                 'game_over': False
             }
+
+class ChatMessage:
+    def __init__(self, id, connection_id, sender_id, message, created_at):
+        self.id = id
+        self.connection_id = connection_id
+        self.sender_id = sender_id
+        self.message = message
+        self.created_at = created_at
+    
+    @staticmethod
+    def create(connection_id, sender_id, message):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''INSERT INTO chat_messages (connection_id, sender_id, message)
+                    VALUES (?, ?, ?)''',
+                 (connection_id, sender_id, message))
+        message_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return message_id
+    
+    @staticmethod
+    def get_messages(connection_id, limit=50, after_id=0):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''SELECT cm.*, u.username FROM chat_messages cm
+                    JOIN users u ON cm.sender_id = u.id
+                    WHERE cm.connection_id = ? AND cm.id > ?
+                    ORDER BY cm.created_at DESC LIMIT ?''',
+                 (connection_id, after_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        
+        messages = []
+        for row in rows:
+            messages.append({
+                'id': row['id'],
+                'sender_id': row['sender_id'],
+                'sender_name': row['username'],
+                'message': row['message'],
+                'created_at': row['created_at']
+            })
+        return list(reversed(messages))  # Return oldest first
+    
+    @staticmethod
+    def get_unread_count(connection_id, user_id):
+        """Get count of unread messages for a user in a connection"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Get last read message id
+        c.execute('''SELECT last_read_chat_id FROM read_status
+                    WHERE user_id = ? AND connection_id = ?''',
+                 (user_id, connection_id))
+        row = c.fetchone()
+        last_read_id = row['last_read_chat_id'] if row else 0
+        
+        # Count messages after last read that aren't from this user
+        c.execute('''SELECT COUNT(*) as count FROM chat_messages
+                    WHERE connection_id = ? AND id > ? AND sender_id != ?''',
+                 (connection_id, last_read_id, user_id))
+        count = c.fetchone()['count']
+        conn.close()
+        return count
+
+class ReadStatus:
+    @staticmethod
+    def update_chat_read(user_id, connection_id, last_message_id):
+        """Update the last read message for a user in a connection"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        c.execute('''INSERT INTO read_status (user_id, connection_id, last_read_chat_id)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(user_id, connection_id) 
+                    DO UPDATE SET last_read_chat_id = ?''',
+                 (user_id, connection_id, last_message_id, last_message_id))
+        conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def update_clipboard_read(user_id, connection_id):
+        """Mark clipboard as read for a user"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        c.execute('''INSERT INTO read_status (user_id, connection_id, last_read_clipboard_time)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(user_id, connection_id) 
+                    DO UPDATE SET last_read_clipboard_time = CURRENT_TIMESTAMP''',
+                 (user_id, connection_id))
+        conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def update_drawing_read(user_id, connection_id):
+        """Mark drawing game as read for a user"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        c.execute('''INSERT INTO read_status (user_id, connection_id, last_read_drawing_time)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(user_id, connection_id) 
+                    DO UPDATE SET last_read_drawing_time = CURRENT_TIMESTAMP''',
+                 (user_id, connection_id))
+        conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def has_unread_clipboard(user_id, connection_id):
+        """Check if there are unread clipboard updates"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Get last read time
+        c.execute('''SELECT last_read_clipboard_time FROM read_status
+                    WHERE user_id = ? AND connection_id = ?''',
+                 (user_id, connection_id))
+        row = c.fetchone()
+        last_read = row['last_read_clipboard_time'] if row else '1970-01-01'
+        
+        # Check if other user has updated since
+        c.execute('''SELECT COUNT(*) as count FROM shared_clipboard
+                    WHERE connection_id = ? AND user_id != ? 
+                    AND updated_at > ?''',
+                 (connection_id, user_id, last_read))
+        count = c.fetchone()['count']
+        conn.close()
+        return count > 0
+    
+    @staticmethod
+    def has_unread_drawing(user_id, connection_id):
+        """Check if there are unread drawing game updates"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Get last read time
+        c.execute('''SELECT last_read_drawing_time FROM read_status
+                    WHERE user_id = ? AND connection_id = ?''',
+                 (user_id, connection_id))
+        row = c.fetchone()
+        last_read = row['last_read_drawing_time'] if row else '1970-01-01'
+        
+        # Check if there are new games or guesses since
+        c.execute('''SELECT COUNT(*) as count FROM drawing_games
+                    WHERE connection_id = ? AND created_at > ?''',
+                 (connection_id, last_read))
+        count = c.fetchone()['count']
+        conn.close()
+        return count > 0

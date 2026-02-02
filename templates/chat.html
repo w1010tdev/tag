@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with {{ other_user.username }} - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-comments"></i> Chat with {{ other_user.username }}</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+    
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            {% for msg in messages %}
+            <div class="chat-message {% if msg.sender_id == current_user.id %}my-message{% else %}other-message{% endif %}">
+                <div class="message-sender">{{ msg.sender_name }}</div>
+                <div class="message-content">{{ msg.message }}</div>
+                <div class="message-time">{{ msg.created_at }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="emoji-picker" id="emoji-picker" style="display: none;">
+            <div class="emoji-grid">
+                <button class="emoji-btn" data-emoji="😀"><i class="far fa-smile"></i></button>
+                <button class="emoji-btn" data-emoji="😂"><i class="far fa-laugh"></i></button>
+                <button class="emoji-btn" data-emoji="😍"><i class="far fa-heart"></i></button>
+                <button class="emoji-btn" data-emoji="🤔"><i class="far fa-meh"></i></button>
+                <button class="emoji-btn" data-emoji="😎"><i class="far fa-grin-stars"></i></button>
+                <button class="emoji-btn" data-emoji="😢"><i class="far fa-sad-tear"></i></button>
+                <button class="emoji-btn" data-emoji="😡"><i class="far fa-angry"></i></button>
+                <button class="emoji-btn" data-emoji="👍"><i class="far fa-thumbs-up"></i></button>
+                <button class="emoji-btn" data-emoji="👎"><i class="far fa-thumbs-down"></i></button>
+                <button class="emoji-btn" data-emoji="❤️"><i class="fas fa-heart"></i></button>
+                <button class="emoji-btn" data-emoji="🎉"><i class="fas fa-star"></i></button>
+                <button class="emoji-btn" data-emoji="🔥"><i class="fas fa-fire"></i></button>
+                <button class="emoji-btn" data-emoji="✨"><i class="fas fa-sparkles"></i></button>
+                <button class="emoji-btn" data-emoji="⭐"><i class="fas fa-star"></i></button>
+                <button class="emoji-btn" data-emoji="💯"><i class="fas fa-check-circle"></i></button>
+                <button class="emoji-btn" data-emoji="🎯"><i class="fas fa-bullseye"></i></button>
+                <button class="emoji-btn" data-emoji="🎮"><i class="fas fa-gamepad"></i></button>
+                <button class="emoji-btn" data-emoji="🎵"><i class="fas fa-music"></i></button>
+                <button class="emoji-btn" data-emoji="📷"><i class="fas fa-camera"></i></button>
+                <button class="emoji-btn" data-emoji="🌟"><i class="fas fa-certificate"></i></button>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <button class="emoji-toggle" onclick="toggleEmojiPicker()">
+                <i class="far fa-smile"></i>
+            </button>
+            <input type="text" id="message-input" class="chat-input" 
+                   placeholder="Type a message..." maxlength="1000">
+            <button class="send-btn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+const connectionId = {{ connection.id }};
+const myUserId = {{ current_user.id }};
+const otherUserId = {{ other_user.id }};
+
+// Join chat room
+socket.emit('join_chat', { connection_id: connectionId });
+
+// Send message
+function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    socket.emit('send_message', {
+        connection_id: connectionId,
+        message: message
+    });
+    
+    input.value = '';
+}
+
+// Handle enter key
+document.getElementById('message-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// Receive new messages
+socket.on('new_message', function(data) {
+    const messagesDiv = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ' + (data.sender_id === myUserId ? 'my-message' : 'other-message');
+    
+    messageDiv.innerHTML = `
+        <div class="message-sender">${data.sender_name}</div>
+        <div class="message-content">${escapeHtml(data.message)}</div>
+        <div class="message-time">${data.created_at}</div>
+    `;
+    
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    // Mark as read if viewing
+    if (data.sender_id !== myUserId) {
+        socket.emit('mark_read', {
+            connection_id: connectionId,
+            message_id: data.id
+        });
+    }
+});
+
+// Emoji picker
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+// Add emoji to input
+document.querySelectorAll('.emoji-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const emoji = this.getAttribute('data-emoji');
+        const input = document.getElementById('message-input');
+        input.value += emoji;
+        input.focus();
+        toggleEmojiPicker();
+    });
+});
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Scroll to bottom on load
+document.getElementById('chat-messages').scrollTop = 
+    document.getElementById('chat-messages').scrollHeight;
+</script>
+{% endblock %}
