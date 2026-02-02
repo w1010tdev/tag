@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
@@ -8,8 +8,9 @@ from flask_babel import Babel, gettext as _, get_locale
 import secrets
 import os
 import re
-from models import db_init, User, InviteToken, Connection, SharedClipboard, DrawingGame, ChatMessage, ReadStatus
+from models import db_init, User, InviteToken, Connection, SharedClipboard, DrawingGame, DrawingSession, ChatMessage, ReadStatus
 from functools import wraps
+from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -80,6 +81,12 @@ login_manager.login_view = 'login'
 
 # Initialize database
 db_init()
+
+# Online presence tracking: user_id -> {sid: page_type}
+# page_type can be 'chat', 'clipboard', 'drawing', 'connection', 'dashboard', etc.
+online_users = defaultdict(dict)
+# Mapping sid -> user_id for cleanup on disconnect
+sid_to_user = {}
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -316,6 +323,88 @@ def create_admin_token():
     token = InviteToken.create_admin_token()
     return jsonify({'token': token})
 
+# Helper to get user's online status in a connection
+def get_connection_online_status(connection, user_id):
+    """Get the online status and page of the other user in this connection."""
+    other_user_id = connection.user2_id if connection.user1_id == user_id else connection.user1_id
+    other_sessions = online_users.get(other_user_id, {})
+    if not other_sessions:
+        return {'online': False, 'page': None}
+    
+    # Check if other user is in any page related to this connection
+    for sid, session_info in other_sessions.items():
+        if session_info.get('connection_id') == connection.id:
+            return {'online': True, 'page': session_info.get('page')}
+    
+    # User is online but not in this connection's pages
+    return {'online': True, 'page': 'other'}
+
+# WebSocket connection events
+@socketio.on('connect')
+def handle_connect():
+    if current_user.is_authenticated:
+        sid_to_user[request.sid] = current_user.id
+        online_users[current_user.id][request.sid] = {'page': 'connected'}
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    user_id = sid_to_user.pop(request.sid, None)
+    if user_id and user_id in online_users:
+        online_users[user_id].pop(request.sid, None)
+        if not online_users[user_id]:
+            del online_users[user_id]
+        # Notify connections about offline status
+        user = User.get_by_id(user_id)
+        if user:
+            connections = user.get_connections()
+            for conn in connections:
+                emit('user_status_changed', {
+                    'user_id': user_id,
+                    'online': False,
+                    'page': None
+                }, room=f'connection_{conn["id"]}', include_self=False)
+
+@socketio.on('set_page')
+def handle_set_page(data):
+    """Track which page the user is currently viewing."""
+    if not current_user.is_authenticated:
+        return
+    
+    page = data.get('page', 'unknown')
+    connection_id = data.get('connection_id')
+    
+    # Update this session's page info
+    if request.sid in online_users.get(current_user.id, {}):
+        online_users[current_user.id][request.sid] = {
+            'page': page,
+            'connection_id': connection_id
+        }
+    
+    # If in a connection-related page, join the connection room and notify
+    if connection_id:
+        if validate_connection_access(connection_id, current_user.id):
+            join_room(f'connection_{connection_id}')
+            # Notify the other user about our status
+            emit('user_status_changed', {
+                'user_id': current_user.id,
+                'online': True,
+                'page': page
+            }, room=f'connection_{connection_id}', include_self=False)
+
+@socketio.on('get_user_status')
+def handle_get_user_status(data):
+    """Get the online status of another user in a connection."""
+    connection_id = data.get('connection_id')
+    
+    if not validate_connection_access(connection_id, current_user.id):
+        return {'online': False, 'page': None}
+    
+    connection = Connection.get_by_id(connection_id)
+    if not connection:
+        return {'online': False, 'page': None}
+    
+    return get_connection_online_status(connection, current_user.id)
+
 # WebSocket events
 @socketio.on('join_clipboard')
 def handle_join_clipboard(data):
@@ -354,9 +443,56 @@ def handle_join_drawing(data):
     connection_id = data.get('connection_id')
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return False
+        return {'success': False}
     join_room(f'drawing_{connection_id}')
-    return True
+    
+    # Check for active session
+    session = DrawingSession.get_active_session(connection_id)
+    connection = Connection.get_by_id(connection_id)
+    
+    if session:
+        if session.waiting_for_partner and session.creator_id != current_user.id:
+            # Join the waiting session
+            session.join_session(current_user.id)
+            # Notify both players
+            emit('session_joined', {
+                'session_id': session.id,
+                'total_rounds': session.total_rounds,
+                'current_round': session.current_round
+            }, room=f'drawing_{connection_id}')
+            return {
+                'success': True, 
+                'session': {
+                    'id': session.id,
+                    'waiting': False,
+                    'current_round': session.current_round,
+                    'total_rounds': session.total_rounds,
+                    'is_creator': False
+                }
+            }
+        return {
+            'success': True, 
+            'session': {
+                'id': session.id,
+                'waiting': session.waiting_for_partner,
+                'current_round': session.current_round,
+                'total_rounds': session.total_rounds,
+                'is_creator': session.creator_id == current_user.id
+            }
+        }
+    
+    # No active session - create one
+    session_id = DrawingSession.create(connection_id, current_user.id, 6)  # 6 rounds (3 each)
+    return {
+        'success': True, 
+        'session': {
+            'id': session_id,
+            'waiting': True,
+            'current_round': 0,
+            'total_rounds': 6,
+            'is_creator': True
+        }
+    }
 
 @socketio.on('drawing_start')
 def handle_drawing_start(data):
@@ -366,20 +502,33 @@ def handle_drawing_start(data):
     
     # Validate access
     if not validate_connection_access(connection_id, drawer_id):
-        return
+        return {'success': False, 'error': 'Access denied'}
     
     # Validate answer (limit to 50 characters)
     answer = answer.strip()[:50]
     if not answer:
-        return
+        return {'success': False, 'error': 'Answer required'}
     
-    # Create new game round
-    DrawingGame.create_round(connection_id, drawer_id, answer)
+    # Get or create session
+    session = DrawingSession.get_active_session(connection_id)
+    if not session:
+        return {'success': False, 'error': 'No active session'}
+    
+    if session.waiting_for_partner:
+        return {'success': False, 'error': 'Waiting for partner to join'}
+    
+    if session.is_session_complete():
+        return {'success': False, 'error': 'Session complete'}
+    
+    # Start the round
+    session.start_next_round(drawer_id, answer)
     
     payload = {
         'drawer_id': drawer_id,
         'drawer_name': current_user.username,
-        'guesses_left': 3
+        'guesses_left': 3,
+        'round': session.current_round,
+        'total_rounds': session.total_rounds
     }
     
     # Notify players
@@ -410,16 +559,46 @@ def handle_drawing_guess(data):
         return
     
     game = DrawingGame.get_by_connection(connection_id)
+    session = DrawingSession.get_active_session(connection_id)
     
     if game:
         result = game.make_guess(guess)
+        
+        # Update session score if correct
+        if result['correct'] and session:
+            session.update_score(current_user.id)
+        
+        # Check if session is complete
+        session_complete = False
+        if result['game_over'] and session:
+            session_complete = session.is_session_complete()
         
         # Send result to both players
         emit('guess_result', {
             'guess': guess,
             'correct': result['correct'],
             'game_over': result['game_over'],
-            'answer': result.get('answer')
+            'answer': result.get('answer'),
+            'session_complete': session_complete,
+            'user1_score': session.user1_score if session else 0,
+            'user2_score': session.user2_score if session else 0,
+            'current_round': session.current_round if session else 0,
+            'total_rounds': session.total_rounds if session else 0
+        }, room=f'drawing_{connection_id}')
+
+@socketio.on('end_drawing_session')
+def handle_end_session(data):
+    """End a drawing session (e.g., when creator leaves)."""
+    connection_id = data.get('connection_id')
+    
+    if not validate_connection_access(connection_id, current_user.id):
+        return
+    
+    session = DrawingSession.get_active_session(connection_id)
+    if session:
+        session.end_session()
+        emit('session_ended', {
+            'reason': 'User left'
         }, room=f'drawing_{connection_id}')
 
 # Chat WebSocket events
@@ -439,11 +618,11 @@ def handle_send_message(data):
     
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return
+        return {'success': False, 'error': 'Access denied'}
     
     # Validate message length (max 1000 chars)
     if not message or len(message) > 1000:
-        return
+        return {'success': False, 'error': 'Invalid message'}
     
     # Save message
     message_id = ChatMessage.create(connection_id, current_user.id, message)

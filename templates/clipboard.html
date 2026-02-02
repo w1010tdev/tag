@@ -5,18 +5,21 @@
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>{{ _('Shared Clipboard with %(username)s', username=other_user.username) }}</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← {{ _('Back') }}</a>
+        <h1><i class="fas fa-clipboard"></i> {{ _('Shared Clipboard with %(username)s', username=other_user.username) }}</h1>
+        <div>
+            <span id="partner-status" class="partner-status"></span>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> {{ _('Back') }}</a>
+        </div>
     </div>
     
     <div class="clipboard-container">
         <div class="clipboard-pane">
-            <h3>{{ _('Your Area (%(username)s)', username=current_user.username) }}</h3>
+            <h3><i class="fas fa-user"></i> {{ _('Your Area (%(username)s)', username=current_user.username) }}</h3>
             <textarea id="my-clipboard" class="clipboard-textarea" 
                       placeholder="{{ _('Type here... Changes sync in real-time') }}"></textarea>
         </div>
         <div class="clipboard-pane">
-            <h3>{{ _("%(username)s's Area", username=other_user.username) }}</h3>
+            <h3><i class="fas fa-user-friends"></i> {{ _("%(username)s's Area", username=other_user.username) }}</h3>
             <textarea id="other-clipboard" class="clipboard-textarea" 
                       placeholder="{{ _('Waiting for %(username)s to type...', username=other_user.username) }}" readonly></textarea>
         </div>
@@ -28,8 +31,36 @@ const socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
+const otherUsername = {{ other_user.username | tojson }};
 
 let roomJoined = false;
+
+// Track page for online status
+socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
+
+// Get partner status
+socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+    updatePartnerStatus(status);
+});
+
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
+    }
+});
+
+function updatePartnerStatus(status) {
+    const statusEl = document.getElementById('partner-status');
+    if (status.online) {
+        if (status.page === 'clipboard') {
+            statusEl.innerHTML = '<span class="status-online"><i class="fas fa-circle"></i> {{ _('Online') }}</span>';
+        } else {
+            statusEl.innerHTML = '<span class="status-away"><i class="fas fa-circle"></i> {{ _('Away') }}</span>';
+        }
+    } else {
+        statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> {{ _('Offline') }}</span>';
+    }
+}
 
 // Join clipboard room with acknowledgment
 socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
@@ -40,6 +71,7 @@ socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
 
 // Re-join on reconnect
 socket.on('connect', function() {
+    socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
     socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
         if (ack) {
             roomJoined = true;

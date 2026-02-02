@@ -57,9 +57,26 @@ def db_init():
                   answer TEXT NOT NULL,
                   guesses_left INTEGER DEFAULT 3,
                   is_complete BOOLEAN DEFAULT 0,
+                  session_id INTEGER,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (connection_id) REFERENCES connections (id),
-                  FOREIGN KEY (drawer_id) REFERENCES users (id))''')
+                  FOREIGN KEY (drawer_id) REFERENCES users (id),
+                  FOREIGN KEY (session_id) REFERENCES drawing_sessions (id))''')
+    
+    # Drawing sessions table (for multi-round games)
+    c.execute('''CREATE TABLE IF NOT EXISTS drawing_sessions
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  connection_id INTEGER NOT NULL,
+                  creator_id INTEGER NOT NULL,
+                  total_rounds INTEGER DEFAULT 6,
+                  current_round INTEGER DEFAULT 0,
+                  user1_score INTEGER DEFAULT 0,
+                  user2_score INTEGER DEFAULT 0,
+                  is_active BOOLEAN DEFAULT 1,
+                  waiting_for_partner BOOLEAN DEFAULT 1,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  FOREIGN KEY (connection_id) REFERENCES connections (id),
+                  FOREIGN KEY (creator_id) REFERENCES users (id))''')
     
     # Chat messages table
     c.execute('''CREATE TABLE IF NOT EXISTS chat_messages
@@ -356,6 +373,162 @@ class SharedClipboard:
         
         conn.commit()
         conn.close()
+
+class DrawingSession:
+    """Represents a multi-round drawing game session between two users."""
+    def __init__(self, id, connection_id, creator_id, total_rounds, current_round, 
+                 user1_score, user2_score, is_active, waiting_for_partner):
+        self.id = id
+        self.connection_id = connection_id
+        self.creator_id = creator_id
+        self.total_rounds = total_rounds
+        self.current_round = current_round
+        self.user1_score = user1_score
+        self.user2_score = user2_score
+        self.is_active = is_active
+        self.waiting_for_partner = waiting_for_partner
+    
+    @staticmethod
+    def create(connection_id, creator_id, total_rounds=6):
+        """Create a new drawing session."""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Deactivate any existing sessions for this connection
+        c.execute('''UPDATE drawing_sessions SET is_active = 0 
+                    WHERE connection_id = ? AND is_active = 1''',
+                 (connection_id,))
+        
+        c.execute('''INSERT INTO drawing_sessions 
+                    (connection_id, creator_id, total_rounds, waiting_for_partner)
+                    VALUES (?, ?, ?, 1)''',
+                 (connection_id, creator_id, total_rounds))
+        session_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return session_id
+    
+    @staticmethod
+    def get_active_session(connection_id):
+        """Get the active session for a connection."""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''SELECT * FROM drawing_sessions 
+                    WHERE connection_id = ? AND is_active = 1
+                    ORDER BY created_at DESC LIMIT 1''',
+                 (connection_id,))
+        row = c.fetchone()
+        conn.close()
+        
+        if row:
+            return DrawingSession(
+                row['id'], row['connection_id'], row['creator_id'],
+                row['total_rounds'], row['current_round'],
+                row['user1_score'], row['user2_score'],
+                row['is_active'], row['waiting_for_partner']
+            )
+        return None
+    
+    @staticmethod
+    def get_by_id(session_id):
+        """Get a session by ID."""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT * FROM drawing_sessions WHERE id = ?', (session_id,))
+        row = c.fetchone()
+        conn.close()
+        
+        if row:
+            return DrawingSession(
+                row['id'], row['connection_id'], row['creator_id'],
+                row['total_rounds'], row['current_round'],
+                row['user1_score'], row['user2_score'],
+                row['is_active'], row['waiting_for_partner']
+            )
+        return None
+    
+    def join_session(self, user_id):
+        """A user joins the waiting session."""
+        if user_id == self.creator_id:
+            return False  # Creator can't join their own session
+        
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''UPDATE drawing_sessions SET waiting_for_partner = 0 
+                    WHERE id = ?''', (self.id,))
+        conn.commit()
+        conn.close()
+        self.waiting_for_partner = False
+        return True
+    
+    def start_next_round(self, drawer_id, answer):
+        """Start the next round with the given drawer and answer."""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Complete any existing rounds for this session
+        c.execute('''UPDATE drawing_games SET is_complete = 1 
+                    WHERE session_id = ? AND is_complete = 0''',
+                 (self.id,))
+        
+        # Create new round
+        c.execute('''INSERT INTO drawing_games 
+                    (connection_id, drawer_id, answer, session_id)
+                    VALUES (?, ?, ?, ?)''',
+                 (self.connection_id, drawer_id, answer, self.id))
+        
+        # Increment round counter
+        c.execute('''UPDATE drawing_sessions SET current_round = current_round + 1 
+                    WHERE id = ?''', (self.id,))
+        
+        conn.commit()
+        conn.close()
+        self.current_round += 1
+    
+    def update_score(self, winner_id):
+        """Update score when a round is won."""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # Get connection to determine which user
+        c.execute('SELECT user1_id, user2_id FROM connections WHERE id = ?',
+                 (self.connection_id,))
+        row = c.fetchone()
+        
+        if row:
+            if winner_id == row['user1_id']:
+                c.execute('''UPDATE drawing_sessions SET user1_score = user1_score + 1 
+                            WHERE id = ?''', (self.id,))
+                self.user1_score += 1
+            else:
+                c.execute('''UPDATE drawing_sessions SET user2_score = user2_score + 1 
+                            WHERE id = ?''', (self.id,))
+                self.user2_score += 1
+        
+        conn.commit()
+        conn.close()
+    
+    def end_session(self):
+        """End the session."""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''UPDATE drawing_sessions SET is_active = 0 WHERE id = ?''',
+                 (self.id,))
+        conn.commit()
+        conn.close()
+        self.is_active = False
+    
+    def is_session_complete(self):
+        """Check if all rounds are complete."""
+        return self.current_round >= self.total_rounds
+    
+    def get_next_drawer(self, connection):
+        """Determine who should draw next (alternating)."""
+        # Odd rounds: user1 draws, Even rounds: user2 draws
+        if self.current_round % 2 == 0:
+            return connection.user1_id
+        else:
+            return connection.user2_id
 
 class DrawingGame:
     def __init__(self, id, connection_id, drawer_id, answer, guesses_left, is_complete):
