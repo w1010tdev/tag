@@ -184,8 +184,8 @@ msgid "Private Chat"
 msgstr "私密聊天"
 
 #: templates/connection.html:16
-msgid "Real-time messaging with emoji"
-msgstr "实时消息与表情符号"
+msgid "Real-time messaging with icons"
+msgstr "实时图标聊天"
 
 #: templates/connection.html:21
 msgid "Real-time synchronized text areas"
@@ -382,5 +382,3 @@ msgstr "输入管理员提供的注册令牌"
 #: templates/register.html:32
 msgid "Already have an account?"
 msgstr "已经有账户？"
-
-

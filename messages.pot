@@ -183,7 +183,7 @@ msgid "Private Chat"
 msgstr ""
 
 #: templates/connection.html:16
-msgid "Real-time messaging with emoji"
+msgid "Real-time messaging with icons"
 msgstr ""
 
 #: templates/connection.html:21
@@ -381,4 +381,3 @@ msgstr ""
 #: templates/register.html:32
 msgid "Already have an account?"
 msgstr ""
-
