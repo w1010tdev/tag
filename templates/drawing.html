@@ -55,9 +55,16 @@ let isDrawing = false;
 let isDrawer = false;
 let canvas, ctx, guessCanvas, guessCtx;
 let currentGuessesLeft = 3;  // Track guesses in JavaScript
+let roomJoined = false;
 
 // Join drawing room
 socket.emit('join_drawing', { connection_id: connectionId });
+
+// Confirm room joined
+socket.on('connect', function() {
+    socket.emit('join_drawing', { connection_id: connectionId });
+    roomJoined = true;
+});
 
 // Check if there's an active game
 {% if game %}
@@ -85,6 +92,16 @@ function startDrawing() {
     const answer = document.getElementById('answer-input').value.trim();
     if (!answer) {
         alert('{{ _('Please enter a word!') }}');
+        return;
+    }
+    
+    if (!roomJoined) {
+        alert('{{ _('Connecting... Please try again.') }}');
+        socket.emit('join_drawing', { connection_id: connectionId });
+        setTimeout(() => {
+            roomJoined = true;
+            startDrawing();
+        }, 500);
         return;
     }
     

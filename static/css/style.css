@@ -783,6 +783,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
     gap: 0.5rem;
+    justify-items: center;
 }
 
 .emoji-btn {
@@ -793,6 +794,11 @@ body {
     font-size: 1.5rem;
     cursor: pointer;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
 }
 
 .emoji-btn:hover {

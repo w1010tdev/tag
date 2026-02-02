@@ -29,8 +29,16 @@ const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 
+let roomJoined = false;
+
 // Join clipboard room
 socket.emit('join_clipboard', { connection_id: connectionId });
+
+// Confirm room joined
+socket.on('connect', function() {
+    socket.emit('join_clipboard', { connection_id: connectionId });
+    roomJoined = true;
+});
 
 // Load existing content
 {% if clipboard_data %}
@@ -47,10 +55,12 @@ let timeout;
 document.getElementById('my-clipboard').addEventListener('input', function(e) {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-        socket.emit('clipboard_update', {
-            connection_id: connectionId,
-            content: e.target.value
-        });
+        if (roomJoined) {
+            socket.emit('clipboard_update', {
+                connection_id: connectionId,
+                content: e.target.value
+            });
+        }
     }, 500);
 });
 
