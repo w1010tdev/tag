@@ -34,9 +34,6 @@ app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'zh']
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
 
-babel = Babel(app)
-
-@babel.localeselector
 def get_user_locale():
     # Check if user explicitly set a language
     lang = session.get('language')
@@ -44,6 +41,8 @@ def get_user_locale():
         return lang
     # Otherwise, use browser preference
     return request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES']) or 'en'
+
+babel = Babel(app, locale_selector=get_user_locale)
 
 # Admin password
 admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
@@ -463,4 +462,4 @@ def handle_mark_read(data):
     ReadStatus.update_chat_read(current_user.id, connection_id, message_id)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=False, host='0.0.0.0', port=5000, use_reloader=False)
+    socketio.run(app, debug=False, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
