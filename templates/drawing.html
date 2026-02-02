@@ -291,9 +291,12 @@ function setupCanvas(canvasId) {
 }
 
 // Brush size display
-document.getElementById('brush-size').addEventListener('input', function() {
-    document.getElementById('brush-size-value').textContent = this.value;
-});
+const brushSizeInput = document.getElementById('brush-size');
+if (brushSizeInput) {
+    brushSizeInput.addEventListener('input', function() {
+        document.getElementById('brush-size-value').textContent = this.value;
+    });
+}
 
 let lastX = 0, lastY = 0;
 
@@ -422,18 +425,24 @@ function submitGuess() {
 }
 
 // Allow enter key to submit guess
-document.getElementById('guess-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        submitGuess();
-    }
-});
+const guessInputEl = document.getElementById('guess-input');
+if (guessInputEl) {
+    guessInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            submitGuess();
+        }
+    });
+}
 
 // Allow enter key to start drawing
-document.getElementById('answer-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        startDrawing();
-    }
-});
+const answerInputEl = document.getElementById('answer-input');
+if (answerInputEl) {
+    answerInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            startDrawing();
+        }
+    });
+}
 
 function startNewSession() {
     // Reload to create a new session

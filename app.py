@@ -12,6 +12,10 @@ from models import db_init, User, InviteToken, Connection, SharedClipboard, Draw
 from functools import wraps
 from collections import defaultdict
 
+# Game constants
+DEFAULT_GUESSES_PER_ROUND = 3
+DEFAULT_ROUNDS_PER_SESSION = 6  # 3 rounds per player
+
 app = Flask(__name__)
 
 # Security configurations
@@ -482,14 +486,14 @@ def handle_join_drawing(data):
         }
     
     # No active session - create one
-    session_id = DrawingSession.create(connection_id, current_user.id, 6)  # 6 rounds (3 each)
+    session_id = DrawingSession.create(connection_id, current_user.id, DEFAULT_ROUNDS_PER_SESSION)
     return {
         'success': True, 
         'session': {
             'id': session_id,
             'waiting': True,
             'current_round': 0,
-            'total_rounds': 6,
+            'total_rounds': DEFAULT_ROUNDS_PER_SESSION,
             'is_creator': True
         }
     }
@@ -526,7 +530,7 @@ def handle_drawing_start(data):
     payload = {
         'drawer_id': drawer_id,
         'drawer_name': current_user.username,
-        'guesses_left': 3,
+        'guesses_left': DEFAULT_GUESSES_PER_ROUND,
         'round': session.current_round,
         'total_rounds': session.total_rounds
     }
