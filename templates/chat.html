@@ -116,13 +116,20 @@ const otherUserId = {{ other_user.id }};
 
 let roomJoined = false;
 
-// Join chat room
-socket.emit('join_chat', { connection_id: connectionId });
+// Join chat room with acknowledgment
+socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
+    if (ack) {
+        roomJoined = true;
+    }
+});
 
-// Confirm room joined
+// Re-join on reconnect
 socket.on('connect', function() {
-    socket.emit('join_chat', { connection_id: connectionId });
-    roomJoined = true;
+    socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        }
+    });
 });
 
 // Send message
@@ -133,9 +140,7 @@ function sendMessage() {
     if (!message) return;
     
     if (!roomJoined) {
-        console.warn('Room not joined yet, retrying...');
-        socket.emit('join_chat', { connection_id: connectionId });
-        setTimeout(() => sendMessage(), 100);
+        alert('{{ _('Connecting... Please try again in a moment.') }}');
         return;
     }
     

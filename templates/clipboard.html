@@ -31,13 +31,20 @@ const otherUserId = {{ other_user.id }};
 
 let roomJoined = false;
 
-// Join clipboard room
-socket.emit('join_clipboard', { connection_id: connectionId });
+// Join clipboard room with acknowledgment
+socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
+    if (ack) {
+        roomJoined = true;
+    }
+});
 
-// Confirm room joined
+// Re-join on reconnect
 socket.on('connect', function() {
-    socket.emit('join_clipboard', { connection_id: connectionId });
-    roomJoined = true;
+    socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        }
+    });
 });
 
 // Load existing content

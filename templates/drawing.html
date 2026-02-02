@@ -57,13 +57,20 @@ let canvas, ctx, guessCanvas, guessCtx;
 let currentGuessesLeft = 3;  // Track guesses in JavaScript
 let roomJoined = false;
 
-// Join drawing room
-socket.emit('join_drawing', { connection_id: connectionId });
+// Join drawing room with acknowledgment
+socket.emit('join_drawing', { connection_id: connectionId }, function(ack) {
+    if (ack) {
+        roomJoined = true;
+    }
+});
 
-// Confirm room joined
+// Re-join on reconnect
 socket.on('connect', function() {
-    socket.emit('join_drawing', { connection_id: connectionId });
-    roomJoined = true;
+    socket.emit('join_drawing', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        }
+    });
 });
 
 // Check if there's an active game
@@ -96,12 +103,7 @@ function startDrawing() {
     }
     
     if (!roomJoined) {
-        alert('{{ _('Connecting... Please try again.') }}');
-        socket.emit('join_drawing', { connection_id: connectionId });
-        setTimeout(() => {
-            roomJoined = true;
-            startDrawing();
-        }, 500);
+        alert('{{ _('Connecting... Please try again in a moment.') }}');
         return;
     }
     
