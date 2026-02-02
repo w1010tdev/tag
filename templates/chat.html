@@ -12,9 +12,9 @@
     <div class="chat-container">
         <div class="chat-messages" id="chat-messages">
             {% for msg in messages %}
-            <div class="chat-message {% if msg.sender_id == current_user.id %}my-message{% else %}other-message{% endif %}">
+            <div class="chat-message {% if msg.sender_id == current_user.id %}my-message{% else %}other-message{% endif %}" data-id="{{ msg.id }}">
                 <div class="message-sender">{{ msg.sender_name }}</div>
-            <div class="message-content">{{ msg.message }}</div>
+                <div class="message-content" data-message="{{ msg.message | tojson }}">{{ msg.message | e }}</div>
                 <div class="message-time">{{ msg.created_at }}</div>
             </div>
             {% endfor %}
@@ -81,9 +81,7 @@ function sendMessage() {
             alert('{{ _('Message failed to send. Please try again.') }}');
             return;
         }
-        if (ack.sender_id === myUserId) {
-            input.value = '';
-        }
+        input.value = '';
     });
 }
 
@@ -97,8 +95,12 @@ document.getElementById('message-input').addEventListener('keypress', function(e
 // Receive new messages
 socket.on('new_message', function(data) {
     const messagesDiv = document.getElementById('chat-messages');
+    if (document.querySelector(`.chat-message[data-id="${data.id}"]`)) {
+        return;
+    }
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message ' + (data.sender_id === myUserId ? 'my-message' : 'other-message');
+    messageDiv.dataset.id = data.id;
     
     const senderDiv = document.createElement('div');
     senderDiv.className = 'message-sender';
@@ -188,8 +190,17 @@ const emojiIcons = [
     { token: ':fa-wand-magic-sparkles:', icon: 'fa-solid fa-wand-magic-sparkles', label: 'Sparkles' }
 ];
 
+const allowedIconClasses = new Set(
+    emojiIcons.flatMap(item => item.icon.split(' '))
+);
+
 const emojiMap = emojiIcons.reduce((map, item) => {
-    map[item.token] = `<i class="${item.icon} fa-emoji-icon" aria-label="${item.label}"></i>`;
+    const className = item.icon
+        .split(' ')
+        .filter(cls => allowedIconClasses.has(cls))
+        .join(' ');
+    const safeLabel = item.label.replace(/[^a-z0-9\s-]/gi, '');
+    map[item.token] = `<i class="${className} fa-emoji-icon" aria-label="${safeLabel}"></i>`;
     return map;
 }, {});
 
@@ -235,7 +246,16 @@ function renderMessageContent(text) {
 }
 
 document.querySelectorAll('.message-content').forEach((element) => {
-    element.innerHTML = renderMessageContent(element.textContent);
+    let rawMessage = element.textContent;
+    if (element.dataset.message) {
+        try {
+            rawMessage = JSON.parse(element.dataset.message);
+        } catch (error) {
+            rawMessage = element.textContent;
+        }
+    }
+    const safeMessage = typeof rawMessage === 'string' ? rawMessage : '';
+    element.innerHTML = renderMessageContent(safeMessage);
 });
 
 // Scroll to bottom on load

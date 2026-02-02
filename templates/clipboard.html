@@ -57,10 +57,19 @@ socket.on('connect', function() {
     {% endif %}
 {% endif %}
 
+const myClipboard = document.getElementById('my-clipboard');
+const otherClipboard = document.getElementById('other-clipboard');
+let lastLocalClipboard = myClipboard.value;
+
+function shouldUpdateLocalClipboard(content) {
+    return document.activeElement !== myClipboard && content !== lastLocalClipboard;
+}
+
 // Send updates
 let timeout;
-document.getElementById('my-clipboard').addEventListener('input', function(e) {
+myClipboard.addEventListener('input', function(e) {
     clearTimeout(timeout);
+    lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
         if (roomJoined) {
             socket.emit('clipboard_update', {
@@ -72,15 +81,16 @@ document.getElementById('my-clipboard').addEventListener('input', function(e) {
 });
 
 // Receive updates
-const myClipboard = document.getElementById('my-clipboard');
-const otherClipboard = document.getElementById('other-clipboard');
 socket.on('clipboard_sync', function(data) {
-    const isSelf = data.user_id === myUserId;
-    const target = isSelf ? myClipboard : otherClipboard;
-    if (isSelf && document.activeElement === myClipboard) {
+    if (data.user_id === myUserId) {
+        if (shouldUpdateLocalClipboard(data.content)) {
+            myClipboard.value = data.content;
+        }
         return;
     }
-    target.value = data.content;
+    if (data.content !== otherClipboard.value) {
+        otherClipboard.value = data.content;
+    }
 });
 </script>
 {% endblock %}

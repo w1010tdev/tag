@@ -343,7 +343,7 @@ def handle_clipboard_update(data):
     # Save to database
     SharedClipboard.update(connection_id, user_id, content)
     
-    # Broadcast to room
+    # Broadcast to room (include sender to keep multi-tab clients in sync and avoid desync)
     emit('clipboard_sync', {
         'user_id': user_id,
         'content': content
@@ -384,7 +384,7 @@ def handle_drawing_start(data):
     
     # Notify players
     emit('game_started', payload, room=f'drawing_{connection_id}')
-    return {'success': True, **payload}
+    return {'success': True}
 
 @socketio.on('drawing_data')
 def handle_drawing_data(data):

@@ -113,7 +113,10 @@ function startDrawing() {
     }, function(response) {
         if (!response || !response.success) {
             alert('{{ _('Unable to start drawing. Please try again.') }}');
+            return;
         }
+        isDrawer = true;
+        showDrawingArea();
     });
 }
 
@@ -223,11 +226,11 @@ socket.on('game_started', function(data) {
     if (data.drawer_id === myUserId) {
         isDrawer = true;
         showDrawingArea();
-        document.getElementById('game-status').innerHTML = '<p>' + '{{ _('You started the round. Draw your word and let the other player guess.') }}' + '</p>';
+        document.getElementById('game-status').innerHTML = '<p>{{ _('You started the round. Draw your word and let the other player guess.') }}</p>';
     } else {
         isDrawer = false;
         showGuessingArea(data.guesses_left || 3);
-        document.getElementById('game-status').innerHTML = '<p>' + '{{ _('New round started by %(username)s. Start guessing!', username=other_user.username) }}' + '</p>';
+        document.getElementById('game-status').innerHTML = '<p>{{ _('New round started by %(username)s. Start guessing!', username=other_user.username) }}</p>';
     }
 });
 
