@@ -347,7 +347,7 @@ def handle_clipboard_update(data):
     emit('clipboard_sync', {
         'user_id': user_id,
         'content': content
-    }, room=f'clipboard_{connection_id}', include_self=False)
+    }, room=f'clipboard_{connection_id}', include_self=True)
 
 @socketio.on('join_drawing')
 def handle_join_drawing(data):
@@ -376,10 +376,15 @@ def handle_drawing_start(data):
     # Create new game round
     DrawingGame.create_round(connection_id, drawer_id, answer)
     
-    # Notify other player
-    emit('game_started', {
-        'drawer_id': drawer_id
-    }, room=f'drawing_{connection_id}', include_self=False)
+    payload = {
+        'drawer_id': drawer_id,
+        'drawer_name': current_user.username,
+        'guesses_left': 3
+    }
+    
+    # Notify players
+    emit('game_started', payload, room=f'drawing_{connection_id}')
+    return {'success': True, **payload}
 
 @socketio.on('drawing_data')
 def handle_drawing_data(data):
@@ -450,7 +455,8 @@ def handle_send_message(data):
         'sender_name': current_user.username,
         'message': message,
         'created_at': 'just now'
-    }, room=f'chat_{connection_id}')
+    }, room=f'chat_{connection_id}', include_self=True)
+    return {'success': True, 'sender_id': current_user.id}
 
 @socketio.on('mark_read')
 def handle_mark_read(data):

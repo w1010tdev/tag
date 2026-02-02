@@ -26,7 +26,7 @@ The app will start on `http://localhost:5000`
 ### 1. Admin Setup (1 minute)
 
 1. Open your browser to `http://localhost:5000/admin/login`
-2. Login with password: `admin123` (⚠️ Change this for production!)
+2. Login with password: `admin123` (Change this for production!)
 3. Click "Generate New Token"
 4. Copy the token
 
@@ -43,10 +43,10 @@ The app will start on `http://localhost:5000`
 2. Share it with a friend (or open in another browser/device)
 3. They click the link to connect with you
 4. Now you can use:
-   - 📋 **Shared Clipboard** - Real-time text sync
-   - 🎨 **Drawing Game** - Play Pictionary together
+   - **Shared Clipboard** - Real-time text sync
+   - **Drawing Game** - Play Pictionary together
 
-## That's It! 🎉
+## That's It!
 
 You're now ready to:
 - Create more admin tokens for new users
@@ -82,4 +82,4 @@ For production use:
 3. Set up HTTPS with a reverse proxy (nginx, Apache)
 4. Consider using PostgreSQL instead of SQLite for better concurrency
 
-Enjoy Social Connect! 🚀
+Enjoy Social Connect!

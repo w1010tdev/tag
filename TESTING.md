@@ -72,7 +72,7 @@ python app.py
 ### 5. Shared Clipboard Feature
 
 #### 5.1 Access Shared Clipboard
-1. From dashboard, click "📋 Clipboard" on a connection
+1. From dashboard, click "Clipboard" on a connection
 2. **Expected**: See two text areas side by side
 3. **Expected**: One labeled with your username, one with the other user's
 
@@ -86,7 +86,7 @@ python app.py
 ### 6. Drawing Game Feature
 
 #### 6.1 Start a Game
-1. From dashboard, click "🎨 Drawing" on a connection
+1. From dashboard, click "Drawing" on a connection
 2. Click "Start New Round"
 3. Enter a word (e.g., "house")
 4. Click "Start Drawing"

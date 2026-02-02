@@ -110,10 +110,11 @@ function startDrawing() {
     socket.emit('drawing_start', {
         connection_id: connectionId,
         answer: answer
+    }, function(response) {
+        if (!response || !response.success) {
+            alert('{{ _('Unable to start drawing. Please try again.') }}');
+        }
     });
-    
-    isDrawer = true;
-    showDrawingArea();
 }
 
 function showDrawingArea() {
@@ -127,6 +128,7 @@ function showDrawingArea() {
 
 function showGuessingArea(guessesLeft) {
     document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('drawing-setup').style.display = 'none';
     document.getElementById('guessing-area').style.display = 'block';
     document.getElementById('guesses-left').textContent = `{{ _('Guesses left:') }} ${guessesLeft || 3}`;
     document.getElementById('game-status').innerHTML = '<p>{{ _('The other player is drawing. Watch and guess!') }}</p>';
@@ -218,8 +220,14 @@ function submitGuess() {
 
 // Socket events
 socket.on('game_started', function(data) {
-    if (data.drawer_id !== myUserId) {
-        showGuessingArea(3);
+    if (data.drawer_id === myUserId) {
+        isDrawer = true;
+        showDrawingArea();
+        document.getElementById('game-status').innerHTML = '<p>' + '{{ _('You started the round. Draw your word and let the other player guess.') }}' + '</p>';
+    } else {
+        isDrawer = false;
+        showGuessingArea(data.guesses_left || 3);
+        document.getElementById('game-status').innerHTML = '<p>' + '{{ _('New round started by %(username)s. Start guessing!', username=other_user.username) }}' + '</p>';
     }
 });
 

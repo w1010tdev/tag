@@ -72,10 +72,15 @@ document.getElementById('my-clipboard').addEventListener('input', function(e) {
 });
 
 // Receive updates
+const myClipboard = document.getElementById('my-clipboard');
+const otherClipboard = document.getElementById('other-clipboard');
 socket.on('clipboard_sync', function(data) {
-    if (data.user_id === otherUserId) {
-        document.getElementById('other-clipboard').value = data.content;
+    const isSelf = data.user_id === myUserId;
+    const target = isSelf ? myClipboard : otherClipboard;
+    if (isSelf && document.activeElement === myClipboard) {
+        return;
     }
+    target.value = data.content;
 });
 </script>
 {% endblock %}

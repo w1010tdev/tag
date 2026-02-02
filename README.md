@@ -7,16 +7,16 @@ A modern, real-time networking platform that allows users to connect and interac
 ### Core Features
 - **User Registration & Authentication**: Secure registration with admin-provided tokens
 - **One-Time Invite Tokens**: Each user can generate unique, refreshable invite tokens to establish connections
-- **Private Chat**: Real-time messaging with Font Awesome emoji pack
+- **Private Chat**: Real-time messaging with Font Awesome icon pack
 - **Shared Clipboard**: Real-time synchronized text areas for seamless collaboration
 - **Drawing Game (Pictionary)**: Interactive drawing and guessing game with 3 attempts per round
 - **Admin Panel**: Manage users and generate registration tokens
-- **Modern UI**: Beautiful, responsive interface optimized for mobile and desktop
+- **Modern UI**: Clean, responsive interface optimized for mobile and desktop
 - **Real-Time Sync**: WebSocket-powered instant updates
 
 ### New Features
 - **Read/Unread Status**: Track unread messages, clipboard updates, and game changes
-- **Emoji Support**: Font Awesome icon-based emoji picker with 20+ emotions
+- **Icon Support**: Font Awesome icon-based picker with 20+ options
 - **Unread Badges**: Visual indicators for new content on dashboard
 - **Mobile Optimized**: Touch-friendly interface for non-technical users
 
@@ -98,7 +98,7 @@ http://localhost:5000
 #### Private Chat
 - Click "Chat" on any connection
 - Type messages and send with Enter or click send button
-- Click emoji button to open emoji picker
+- Click icon button to open the icon picker
 - See unread count badge on dashboard
 - Messages sync in real-time
 

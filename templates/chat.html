@@ -14,85 +14,14 @@
             {% for msg in messages %}
             <div class="chat-message {% if msg.sender_id == current_user.id %}my-message{% else %}other-message{% endif %}">
                 <div class="message-sender">{{ msg.sender_name }}</div>
-                <div class="message-content">{{ msg.message }}</div>
+            <div class="message-content">{{ msg.message }}</div>
                 <div class="message-time">{{ msg.created_at }}</div>
             </div>
             {% endfor %}
         </div>
         
         <div class="emoji-picker" id="emoji-picker" style="display: none;">
-            <div class="emoji-grid">
-                <button class="emoji-btn" data-emoji="😀">😀</button>
-                <button class="emoji-btn" data-emoji="😂">😂</button>
-                <button class="emoji-btn" data-emoji="😍">😍</button>
-                <button class="emoji-btn" data-emoji="🤔">🤔</button>
-                <button class="emoji-btn" data-emoji="😎">😎</button>
-                <button class="emoji-btn" data-emoji="😢">😢</button>
-                <button class="emoji-btn" data-emoji="😡">😡</button>
-                <button class="emoji-btn" data-emoji="😊">😊</button>
-                <button class="emoji-btn" data-emoji="😅">😅</button>
-                <button class="emoji-btn" data-emoji="😆">😆</button>
-                <button class="emoji-btn" data-emoji="😉">😉</button>
-                <button class="emoji-btn" data-emoji="😋">😋</button>
-                <button class="emoji-btn" data-emoji="😌">😌</button>
-                <button class="emoji-btn" data-emoji="😏">😏</button>
-                <button class="emoji-btn" data-emoji="😒">😒</button>
-                <button class="emoji-btn" data-emoji="😓">😓</button>
-                <button class="emoji-btn" data-emoji="😔">😔</button>
-                <button class="emoji-btn" data-emoji="😕">😕</button>
-                <button class="emoji-btn" data-emoji="😖">😖</button>
-                <button class="emoji-btn" data-emoji="😞">😞</button>
-                <button class="emoji-btn" data-emoji="😭">😭</button>
-                <button class="emoji-btn" data-emoji="😤">😤</button>
-                <button class="emoji-btn" data-emoji="😨">😨</button>
-                <button class="emoji-btn" data-emoji="😱">😱</button>
-                <button class="emoji-btn" data-emoji="😳">😳</button>
-                <button class="emoji-btn" data-emoji="😵">😵</button>
-                <button class="emoji-btn" data-emoji="😴">😴</button>
-                <button class="emoji-btn" data-emoji="😷">😷</button>
-                <button class="emoji-btn" data-emoji="🤒">🤒</button>
-                <button class="emoji-btn" data-emoji="🤕">🤕</button>
-                <button class="emoji-btn" data-emoji="🤗">🤗</button>
-                <button class="emoji-btn" data-emoji="🤩">🤩</button>
-                <button class="emoji-btn" data-emoji="🤪">🤪</button>
-                <button class="emoji-btn" data-emoji="🤮">🤮</button>
-                <button class="emoji-btn" data-emoji="🤯">🤯</button>
-                <button class="emoji-btn" data-emoji="👍">👍</button>
-                <button class="emoji-btn" data-emoji="👎">👎</button>
-                <button class="emoji-btn" data-emoji="👏">👏</button>
-                <button class="emoji-btn" data-emoji="🙏">🙏</button>
-                <button class="emoji-btn" data-emoji="❤️">❤️</button>
-                <button class="emoji-btn" data-emoji="💔">💔</button>
-                <button class="emoji-btn" data-emoji="💕">💕</button>
-                <button class="emoji-btn" data-emoji="💖">💖</button>
-                <button class="emoji-btn" data-emoji="💗">💗</button>
-                <button class="emoji-btn" data-emoji="💙">💙</button>
-                <button class="emoji-btn" data-emoji="💚">💚</button>
-                <button class="emoji-btn" data-emoji="💛">💛</button>
-                <button class="emoji-btn" data-emoji="🧡">🧡</button>
-                <button class="emoji-btn" data-emoji="💜">💜</button>
-                <button class="emoji-btn" data-emoji="🖤">🖤</button>
-                <button class="emoji-btn" data-emoji="💯">💯</button>
-                <button class="emoji-btn" data-emoji="🎉">🎉</button>
-                <button class="emoji-btn" data-emoji="🎊">🎊</button>
-                <button class="emoji-btn" data-emoji="🎈">🎈</button>
-                <button class="emoji-btn" data-emoji="🎁">🎁</button>
-                <button class="emoji-btn" data-emoji="🔥">🔥</button>
-                <button class="emoji-btn" data-emoji="✨">✨</button>
-                <button class="emoji-btn" data-emoji="⭐">⭐</button>
-                <button class="emoji-btn" data-emoji="🌟">🌟</button>
-                <button class="emoji-btn" data-emoji="💫">💫</button>
-                <button class="emoji-btn" data-emoji="🎯">🎯</button>
-                <button class="emoji-btn" data-emoji="🎮">🎮</button>
-                <button class="emoji-btn" data-emoji="🎵">🎵</button>
-                <button class="emoji-btn" data-emoji="🎶">🎶</button>
-                <button class="emoji-btn" data-emoji="📷">📷</button>
-                <button class="emoji-btn" data-emoji="📱">📱</button>
-                <button class="emoji-btn" data-emoji="💻">💻</button>
-                <button class="emoji-btn" data-emoji="⌚">⌚</button>
-                <button class="emoji-btn" data-emoji="🔔">🔔</button>
-                <button class="emoji-btn" data-emoji="🔕">🔕</button>
-            </div>
+            <div class="emoji-grid" id="emoji-grid"></div>
         </div>
         
         <div class="chat-input-container">
@@ -147,9 +76,15 @@ function sendMessage() {
     socket.emit('send_message', {
         connection_id: connectionId,
         message: message
+    }, function(ack) {
+        if (!ack || !ack.success) {
+            alert('{{ _('Message failed to send. Please try again.') }}');
+            return;
+        }
+        if (ack.sender_id === myUserId) {
+            input.value = '';
+        }
     });
-    
-    input.value = '';
 }
 
 // Handle enter key
@@ -165,11 +100,21 @@ socket.on('new_message', function(data) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message ' + (data.sender_id === myUserId ? 'my-message' : 'other-message');
     
-    messageDiv.innerHTML = `
-        <div class="message-sender">${data.sender_name}</div>
-        <div class="message-content">${escapeHtml(data.message)}</div>
-        <div class="message-time">${data.created_at}</div>
-    `;
+    const senderDiv = document.createElement('div');
+    senderDiv.className = 'message-sender';
+    senderDiv.textContent = data.sender_name;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = renderMessageContent(data.message);
+    
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'message-time';
+    timeDiv.textContent = data.created_at;
+    
+    messageDiv.appendChild(senderDiv);
+    messageDiv.appendChild(contentDiv);
+    messageDiv.appendChild(timeDiv);
     
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -183,22 +128,99 @@ socket.on('new_message', function(data) {
     }
 });
 
+const emojiIcons = [
+    { token: ':fa-face-smile:', icon: 'fa-regular fa-face-smile', label: 'Smile' },
+    { token: ':fa-face-smile-beam:', icon: 'fa-regular fa-face-smile-beam', label: 'Smile beam' },
+    { token: ':fa-face-smile-wink:', icon: 'fa-regular fa-face-smile-wink', label: 'Wink' },
+    { token: ':fa-face-laugh:', icon: 'fa-regular fa-face-laugh', label: 'Laugh' },
+    { token: ':fa-face-laugh-beam:', icon: 'fa-regular fa-face-laugh-beam', label: 'Laugh beam' },
+    { token: ':fa-face-laugh-squint:', icon: 'fa-regular fa-face-laugh-squint', label: 'Laugh squint' },
+    { token: ':fa-face-laugh-wink:', icon: 'fa-regular fa-face-laugh-wink', label: 'Laugh wink' },
+    { token: ':fa-face-grin:', icon: 'fa-regular fa-face-grin', label: 'Grin' },
+    { token: ':fa-face-grin-wide:', icon: 'fa-regular fa-face-grin-wide', label: 'Wide grin' },
+    { token: ':fa-face-grin-beam:', icon: 'fa-regular fa-face-grin-beam', label: 'Beam' },
+    { token: ':fa-face-grin-beam-sweat:', icon: 'fa-regular fa-face-grin-beam-sweat', label: 'Relieved' },
+    { token: ':fa-face-grin-stars:', icon: 'fa-regular fa-face-grin-stars', label: 'Star eyes' },
+    { token: ':fa-face-grin-hearts:', icon: 'fa-regular fa-face-grin-hearts', label: 'Hearts' },
+    { token: ':fa-face-grin-squint:', icon: 'fa-regular fa-face-grin-squint', label: 'Squint' },
+    { token: ':fa-face-grin-squint-tears:', icon: 'fa-regular fa-face-grin-squint-tears', label: 'Laughing tears' },
+    { token: ':fa-face-grin-tears:', icon: 'fa-regular fa-face-grin-tears', label: 'Grin tears' },
+    { token: ':fa-face-grin-tongue:', icon: 'fa-regular fa-face-grin-tongue', label: 'Tongue' },
+    { token: ':fa-face-grin-tongue-wink:', icon: 'fa-regular fa-face-grin-tongue-wink', label: 'Tongue wink' },
+    { token: ':fa-face-grin-tongue-squint:', icon: 'fa-regular fa-face-grin-tongue-squint', label: 'Tongue squint' },
+    { token: ':fa-face-grin-wink:', icon: 'fa-regular fa-face-grin-wink', label: 'Grin wink' },
+    { token: ':fa-face-kiss:', icon: 'fa-regular fa-face-kiss', label: 'Kiss' },
+    { token: ':fa-face-kiss-beam:', icon: 'fa-regular fa-face-kiss-beam', label: 'Kiss beam' },
+    { token: ':fa-face-kiss-wink-heart:', icon: 'fa-regular fa-face-kiss-wink-heart', label: 'Kiss heart' },
+    { token: ':fa-face-surprise:', icon: 'fa-regular fa-face-surprise', label: 'Surprise' },
+    { token: ':fa-face-flushed:', icon: 'fa-regular fa-face-flushed', label: 'Flushed' },
+    { token: ':fa-face-meh:', icon: 'fa-regular fa-face-meh', label: 'Meh' },
+    { token: ':fa-face-meh-blank:', icon: 'fa-regular fa-face-meh-blank', label: 'Blank' },
+    { token: ':fa-face-rolling-eyes:', icon: 'fa-regular fa-face-rolling-eyes', label: 'Eye roll' },
+    { token: ':fa-face-frown:', icon: 'fa-regular fa-face-frown', label: 'Frown' },
+    { token: ':fa-face-frown-open:', icon: 'fa-regular fa-face-frown-open', label: 'Open frown' },
+    { token: ':fa-face-sad-tear:', icon: 'fa-regular fa-face-sad-tear', label: 'Sad' },
+    { token: ':fa-face-sad-cry:', icon: 'fa-regular fa-face-sad-cry', label: 'Crying' },
+    { token: ':fa-face-tired:', icon: 'fa-regular fa-face-tired', label: 'Tired' },
+    { token: ':fa-face-dizzy:', icon: 'fa-regular fa-face-dizzy', label: 'Dizzy' },
+    { token: ':fa-face-angry:', icon: 'fa-regular fa-face-angry', label: 'Angry' },
+    { token: ':fa-face-grimace:', icon: 'fa-regular fa-face-grimace', label: 'Grimace' },
+    { token: ':fa-heart:', icon: 'fa-solid fa-heart', label: 'Heart' },
+    { token: ':fa-heart-crack:', icon: 'fa-solid fa-heart-crack', label: 'Broken heart' },
+    { token: ':fa-heart-circle-plus:', icon: 'fa-solid fa-heart-circle-plus', label: 'Heart plus' },
+    { token: ':fa-heart-circle-check:', icon: 'fa-solid fa-heart-circle-check', label: 'Heart check' },
+    { token: ':fa-thumbs-up:', icon: 'fa-solid fa-thumbs-up', label: 'Thumbs up' },
+    { token: ':fa-thumbs-down:', icon: 'fa-solid fa-thumbs-down', label: 'Thumbs down' },
+    { token: ':fa-hands-clapping:', icon: 'fa-solid fa-hands-clapping', label: 'Clap' },
+    { token: ':fa-hands-praying:', icon: 'fa-solid fa-hands-praying', label: 'Pray' },
+    { token: ':fa-handshake:', icon: 'fa-solid fa-handshake', label: 'Handshake' },
+    { token: ':fa-star:', icon: 'fa-solid fa-star', label: 'Star' },
+    { token: ':fa-fire:', icon: 'fa-solid fa-fire', label: 'Fire' },
+    { token: ':fa-bolt:', icon: 'fa-solid fa-bolt', label: 'Bolt' },
+    { token: ':fa-gift:', icon: 'fa-solid fa-gift', label: 'Gift' },
+    { token: ':fa-bell:', icon: 'fa-solid fa-bell', label: 'Bell' },
+    { token: ':fa-comments:', icon: 'fa-solid fa-comments', label: 'Chat' },
+    { token: ':fa-rocket:', icon: 'fa-solid fa-rocket', label: 'Rocket' },
+    { token: ':fa-cake-candles:', icon: 'fa-solid fa-cake-candles', label: 'Cake' },
+    { token: ':fa-music:', icon: 'fa-solid fa-music', label: 'Music' },
+    { token: ':fa-sun:', icon: 'fa-solid fa-sun', label: 'Sun' },
+    { token: ':fa-moon:', icon: 'fa-solid fa-moon', label: 'Moon' },
+    { token: ':fa-wand-magic-sparkles:', icon: 'fa-solid fa-wand-magic-sparkles', label: 'Sparkles' }
+];
+
+const emojiMap = emojiIcons.reduce((map, item) => {
+    map[item.token] = `<i class="${item.icon} fa-emoji-icon" aria-label="${item.label}"></i>`;
+    return map;
+}, {});
+
+const emojiGrid = document.getElementById('emoji-grid');
+emojiIcons.forEach(item => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'emoji-btn';
+    button.dataset.token = item.token;
+    button.innerHTML = `<i class="${item.icon}" aria-hidden="true"></i>`;
+    button.addEventListener('click', () => {
+        insertAtCursor(document.getElementById('message-input'), item.token);
+        toggleEmojiPicker();
+    });
+    emojiGrid.appendChild(button);
+});
+
 // Emoji picker
 function toggleEmojiPicker() {
     const picker = document.getElementById('emoji-picker');
     picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
 }
 
-// Add emoji to input
-document.querySelectorAll('.emoji-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const emoji = this.getAttribute('data-emoji');
-        const input = document.getElementById('message-input');
-        input.value += emoji;
-        input.focus();
-        toggleEmojiPicker();
-    });
-});
+function insertAtCursor(input, text) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.slice(0, start) + text + input.value.slice(end);
+    const newPosition = start + text.length;
+    input.setSelectionRange(newPosition, newPosition);
+    input.focus();
+}
 
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
@@ -206,6 +228,15 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+function renderMessageContent(text) {
+    const escaped = escapeHtml(text);
+    return escaped.replace(/:fa-[a-z0-9-]+:/g, match => emojiMap[match] || match);
+}
+
+document.querySelectorAll('.message-content').forEach((element) => {
+    element.innerHTML = renderMessageContent(element.textContent);
+});
 
 // Scroll to bottom on load
 document.getElementById('chat-messages').scrollTop = 
