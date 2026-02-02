@@ -6,7 +6,10 @@
 <div class="container">
     <div class="page-header">
         <h1><i class="fas fa-comments"></i> {{ _('Chat with %(username)s', username=other_user.username) }}</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> {{ _('Back') }}</a>
+        <div>
+            <span id="partner-status" class="partner-status"></span>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> {{ _('Back') }}</a>
+        </div>
     </div>
     
     <div class="chat-container">
@@ -25,12 +28,12 @@
         </div>
         
         <div class="chat-input-container">
-            <button class="emoji-toggle" onclick="toggleEmojiPicker()">
+            <button class="emoji-toggle" id="emoji-toggle-btn" type="button" aria-label="{{ _('Toggle emoji picker') }}">
                 <i class="far fa-smile"></i>
             </button>
             <input type="text" id="message-input" class="chat-input" 
-                   placeholder="{{ _('Type a message...') }}" maxlength="1000">
-            <button class="send-btn" onclick="sendMessage()">
+                   placeholder="{{ _('Type a message...') }}" maxlength="1000" autocomplete="off">
+            <button class="send-btn" id="send-btn" type="button" aria-label="{{ _('Send message') }}">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
@@ -42,8 +45,36 @@ const socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
+const otherUsername = {{ other_user.username | tojson }};
 
 let roomJoined = false;
+
+// Track page for online status
+socket.emit('set_page', { page: 'chat', connection_id: connectionId });
+
+// Get partner status
+socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+    updatePartnerStatus(status);
+});
+
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
+    }
+});
+
+function updatePartnerStatus(status) {
+    const statusEl = document.getElementById('partner-status');
+    if (status.online) {
+        if (status.page === 'chat') {
+            statusEl.innerHTML = '<span class="status-online"><i class="fas fa-circle"></i> {{ _('Online') }}</span>';
+        } else {
+            statusEl.innerHTML = '<span class="status-away"><i class="fas fa-circle"></i> {{ _('Away') }}</span>';
+        }
+    } else {
+        statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> {{ _('Offline') }}</span>';
+    }
+}
 
 // Join chat room with acknowledgment
 socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
@@ -54,6 +85,7 @@ socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
 
 // Re-join on reconnect
 socket.on('connect', function() {
+    socket.emit('set_page', { page: 'chat', connection_id: connectionId });
     socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
         if (ack) {
             roomJoined = true;
@@ -61,7 +93,7 @@ socket.on('connect', function() {
     });
 });
 
-// Send message
+// Send message function
 function sendMessage() {
     const input = document.getElementById('message-input');
     const message = input.value.trim();
@@ -73,23 +105,48 @@ function sendMessage() {
         return;
     }
     
+    // Disable send button temporarily
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = true;
+    
     socket.emit('send_message', {
         connection_id: connectionId,
         message: message
     }, function(ack) {
+        sendBtn.disabled = false;
         if (!ack || !ack.success) {
-            alert('{{ _('Message failed to send. Please try again.') }}');
+            const errorMsg = ack && ack.error ? ack.error : '{{ _('Message failed to send. Please try again.') }}';
+            alert(errorMsg);
             return;
         }
         input.value = '';
+        input.focus();
     });
 }
 
-// Handle enter key
+// Handle enter key for message input
 document.getElementById('message-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
+        e.preventDefault();
         sendMessage();
     }
+});
+
+// Attach send button click handler
+document.getElementById('send-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    sendMessage();
+});
+
+// Toggle emoji picker
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+document.getElementById('emoji-toggle-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    toggleEmojiPicker();
 });
 
 // Receive new messages
@@ -217,12 +274,6 @@ emojiIcons.forEach(item => {
     });
     emojiGrid.appendChild(button);
 });
-
-// Emoji picker
-function toggleEmojiPicker() {
-    const picker = document.getElementById('emoji-picker');
-    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
-}
 
 function insertAtCursor(input, text) {
     const start = input.selectionStart;

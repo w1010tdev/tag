@@ -979,3 +979,162 @@ body {
         gap: 0.75rem;
     }
 }
+
+/* Online Status Indicators */
+.partner-status {
+    margin-right: 1rem;
+    font-size: 0.875rem;
+}
+
+.status-online {
+    color: var(--success-color);
+}
+
+.status-online i {
+    font-size: 0.6rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.status-away {
+    color: var(--warning-color);
+}
+
+.status-away i {
+    font-size: 0.6rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.status-offline {
+    color: #718096;
+}
+
+.status-offline i {
+    font-size: 0.6rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+/* Drawing Game Enhancements */
+.game-info {
+    margin-bottom: 1rem;
+}
+
+.score-board {
+    display: flex;
+    justify-content: space-between;
+    background: var(--light-color);
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.waiting-screen {
+    text-align: center;
+    padding: 3rem;
+}
+
+.waiting-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.waiting-content i {
+    color: var(--primary-color);
+}
+
+.waiting-content h3 {
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.waiting-content p {
+    color: #718096;
+    margin: 0;
+}
+
+.setup-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.guesses-left {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.session-complete {
+    text-align: center;
+    padding: 3rem;
+}
+
+.session-complete h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+#final-scores {
+    margin-bottom: 2rem;
+}
+
+#final-scores h3 {
+    color: var(--success-color);
+    font-size: 1.5rem;
+}
+
+/* Error text */
+.error {
+    color: var(--danger-color);
+}
+
+/* Page header improvements */
+.page-header > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Canvas touch improvements for tablets */
+#drawing-canvas, #guess-canvas {
+    touch-action: none;
+}
+
+/* Drawing controls labels */
+.drawing-controls label {
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+#brush-size-value {
+    min-width: 2rem;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Mobile responsiveness for drawing */
+@media (max-width: 768px) {
+    .score-board {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .page-header > div {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    
+    .waiting-screen {
+        padding: 2rem 1rem;
+    }
+    
+    .drawing-controls {
+        flex-direction: column;
+    }
+}

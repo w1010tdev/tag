@@ -5,42 +5,71 @@
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>{{ _('Drawing Game with %(username)s', username=other_user.username) }}</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← {{ _('Back') }}</a>
+        <h1><i class="fas fa-palette"></i> {{ _('Drawing Game with %(username)s', username=other_user.username) }}</h1>
+        <div>
+            <span id="partner-status" class="partner-status"></span>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> {{ _('Back') }}</a>
+        </div>
     </div>
     
     <div class="game-container">
-        <div class="game-status" id="game-status">
-            <p>{{ _('Ready to play! Click "Start New Round" to begin.') }}</p>
+        <div class="game-info" id="game-info">
+            <div class="score-board" id="score-board" style="display: none;">
+                <span id="round-info"></span>
+                <span id="score-info"></span>
+            </div>
         </div>
         
-        <div id="start-screen" class="start-screen">
-            <button onclick="showDrawingSetup()" class="btn btn-primary btn-lg">{{ _('Start New Round') }}</button>
+        <div class="game-status" id="game-status">
+            <p>{{ _('Connecting...') }}</p>
+        </div>
+        
+        <div id="waiting-screen" class="waiting-screen" style="display: none;">
+            <div class="waiting-content">
+                <i class="fas fa-hourglass-half fa-spin fa-3x"></i>
+                <h3>{{ _('Waiting for partner to join...') }}</h3>
+                <p>{{ _('The game will start automatically when your partner enters the drawing page.') }}</p>
+            </div>
+        </div>
+        
+        <div id="start-screen" class="start-screen" style="display: none;">
+            <button onclick="showDrawingSetup()" class="btn btn-primary btn-lg"><i class="fas fa-play"></i> {{ _('Start New Round') }}</button>
         </div>
         
         <div id="drawing-setup" class="drawing-setup" style="display: none;">
             <h3>{{ _('Enter the word to draw:') }}</h3>
-            <input type="text" id="answer-input" placeholder="{{ _('Enter a word...') }}">
-            <button onclick="startDrawing()" class="btn btn-primary">{{ _('Start Drawing') }}</button>
-            <button onclick="cancelSetup()" class="btn btn-secondary">{{ _('Cancel') }}</button>
+            <input type="text" id="answer-input" placeholder="{{ _('Enter a word...') }}" maxlength="50">
+            <div class="setup-buttons">
+                <button onclick="startDrawing()" class="btn btn-primary"><i class="fas fa-check"></i> {{ _('Start Drawing') }}</button>
+                <button onclick="cancelSetup()" class="btn btn-secondary"><i class="fas fa-times"></i> {{ _('Cancel') }}</button>
+            </div>
         </div>
         
         <div id="drawing-area" class="drawing-area" style="display: none;">
             <canvas id="drawing-canvas" width="600" height="400"></canvas>
             <div class="drawing-controls">
-                <button onclick="clearCanvas()" class="btn btn-warning">{{ _('Clear') }}</button>
+                <button onclick="clearCanvas()" class="btn btn-warning"><i class="fas fa-eraser"></i> {{ _('Clear') }}</button>
+                <label for="color-picker">{{ _('Color:') }}</label>
                 <input type="color" id="color-picker" value="#000000">
-                <input type="range" id="brush-size" min="1" max="20" value="3">
+                <label for="brush-size">{{ _('Size:') }}</label>
+                <input type="range" id="brush-size" min="1" max="20" value="5">
+                <span id="brush-size-value">5</span>
             </div>
         </div>
         
         <div id="guessing-area" class="guessing-area" style="display: none;">
             <canvas id="guess-canvas" width="600" height="400"></canvas>
             <div class="guess-controls">
-                <div id="guesses-left"></div>
-                <input type="text" id="guess-input" placeholder="{{ _('Enter your guess...') }}">
-                <button onclick="submitGuess()" class="btn btn-primary">{{ _('Guess') }}</button>
+                <div id="guesses-left" class="guesses-left"></div>
+                <input type="text" id="guess-input" placeholder="{{ _('Enter your guess...') }}" maxlength="50">
+                <button onclick="submitGuess()" class="btn btn-primary"><i class="fas fa-check"></i> {{ _('Guess') }}</button>
             </div>
+        </div>
+        
+        <div id="session-complete" class="session-complete" style="display: none;">
+            <h2>{{ _('Game Complete!') }}</h2>
+            <div id="final-scores"></div>
+            <button onclick="startNewSession()" class="btn btn-primary btn-lg"><i class="fas fa-redo"></i> {{ _('Play Again') }}</button>
         </div>
     </div>
 </div>
@@ -50,49 +79,139 @@ const socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
+const otherUsername = {{ other_user.username | tojson }};
 
 let isDrawing = false;
 let isDrawer = false;
 let canvas, ctx, guessCanvas, guessCtx;
-let currentGuessesLeft = 3;  // Track guesses in JavaScript
+let currentGuessesLeft = 3;
 let roomJoined = false;
+let currentSession = null;
+
+// Track page for online status
+socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
 
 // Join drawing room with acknowledgment
-socket.emit('join_drawing', { connection_id: connectionId }, function(ack) {
-    if (ack) {
-        roomJoined = true;
-    }
-});
+function joinDrawingRoom() {
+    socket.emit('join_drawing', { connection_id: connectionId }, function(response) {
+        if (response && response.success) {
+            roomJoined = true;
+            currentSession = response.session;
+            handleSessionState(response.session);
+        } else {
+            document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Failed to join game. Please refresh the page.') }}</p>';
+        }
+    });
+}
+
+joinDrawingRoom();
 
 // Re-join on reconnect
 socket.on('connect', function() {
-    socket.emit('join_drawing', { connection_id: connectionId }, function(ack) {
-        if (ack) {
-            roomJoined = true;
-        }
-    });
+    socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
+    joinDrawingRoom();
 });
 
-// Check if there's an active game
-{% if game %}
-    {% if game.drawer_id == current_user.id %}
-        isDrawer = true;
-        showDrawingArea();
-    {% else %}
-        isDrawer = false;
-        currentGuessesLeft = {{ game.guesses_left }};
-        showGuessingArea(currentGuessesLeft);
-    {% endif %}
-{% endif %}
+// Get partner status
+socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+    updatePartnerStatus(status);
+});
+
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
+    }
+});
+
+function updatePartnerStatus(status) {
+    const statusEl = document.getElementById('partner-status');
+    if (status.online) {
+        if (status.page === 'drawing') {
+            statusEl.innerHTML = '<span class="status-online"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _("is in Drawing") }}</span>';
+        } else {
+            statusEl.innerHTML = '<span class="status-away"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _("is online") }}</span>';
+        }
+    } else {
+        statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> ' + otherUsername + ' {{ _("is offline") }}</span>';
+    }
+}
+
+function handleSessionState(session) {
+    if (!session) {
+        showStartScreen();
+        return;
+    }
+    
+    currentSession = session;
+    updateScoreBoard();
+    
+    if (session.waiting) {
+        // Waiting for partner
+        if (session.is_creator) {
+            showWaitingScreen();
+        } else {
+            // We just joined, show start screen
+            showStartScreen();
+        }
+    } else {
+        // Session is active
+        // Check if there's an active game
+        {% if game %}
+            {% if game.drawer_id == current_user.id %}
+                isDrawer = true;
+                showDrawingArea();
+            {% else %}
+                isDrawer = false;
+                currentGuessesLeft = {{ game.guesses_left }};
+                showGuessingArea(currentGuessesLeft);
+            {% endif %}
+        {% else %}
+            showStartScreen();
+        {% endif %}
+    }
+}
+
+function updateScoreBoard() {
+    if (!currentSession) return;
+    
+    const scoreBoard = document.getElementById('score-board');
+    const roundInfo = document.getElementById('round-info');
+    const scoreInfo = document.getElementById('score-info');
+    
+    scoreBoard.style.display = 'flex';
+    roundInfo.textContent = `{{ _('Round:') }} ${currentSession.current_round} / ${currentSession.total_rounds}`;
+    scoreInfo.textContent = `{{ _('Score:') }} {{ current_user.username }}: ${currentSession.user1_score || 0} | ${otherUsername}: ${currentSession.user2_score || 0}`;
+}
+
+function showWaitingScreen() {
+    hideAllScreens();
+    document.getElementById('waiting-screen').style.display = 'block';
+    document.getElementById('game-status').innerHTML = '<p>{{ _('You created a new game session. Waiting for partner to join...') }}</p>';
+}
+
+function showStartScreen() {
+    hideAllScreens();
+    document.getElementById('start-screen').style.display = 'block';
+    document.getElementById('game-status').innerHTML = '<p>{{ _('Ready to play! Click "Start New Round" to begin.') }}</p>';
+}
+
+function hideAllScreens() {
+    document.getElementById('waiting-screen').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('drawing-setup').style.display = 'none';
+    document.getElementById('drawing-area').style.display = 'none';
+    document.getElementById('guessing-area').style.display = 'none';
+    document.getElementById('session-complete').style.display = 'none';
+}
 
 function showDrawingSetup() {
-    document.getElementById('start-screen').style.display = 'none';
+    hideAllScreens();
     document.getElementById('drawing-setup').style.display = 'block';
+    document.getElementById('answer-input').focus();
 }
 
 function cancelSetup() {
-    document.getElementById('drawing-setup').style.display = 'none';
-    document.getElementById('start-screen').style.display = 'block';
+    showStartScreen();
 }
 
 function startDrawing() {
@@ -112,52 +231,83 @@ function startDrawing() {
         answer: answer
     }, function(response) {
         if (!response || !response.success) {
-            alert('{{ _('Unable to start drawing. Please try again.') }}');
+            const errorMsg = response && response.error ? response.error : '{{ _('Unable to start drawing. Please try again.') }}';
+            alert(errorMsg);
             return;
         }
+        document.getElementById('answer-input').value = '';
         isDrawer = true;
         showDrawingArea();
     });
 }
 
 function showDrawingArea() {
-    document.getElementById('start-screen').style.display = 'none';
-    document.getElementById('drawing-setup').style.display = 'none';
+    hideAllScreens();
     document.getElementById('drawing-area').style.display = 'block';
-    document.getElementById('game-status').innerHTML = '<p>{{ _('You are drawing! Draw your word and let the other player guess.') }}</p>';
+    document.getElementById('game-status').innerHTML = '<p><i class="fas fa-pencil-alt"></i> {{ _('You are drawing! Draw your word and let the other player guess.') }}</p>';
     
     setupCanvas('drawing-canvas');
 }
 
 function showGuessingArea(guessesLeft) {
-    document.getElementById('start-screen').style.display = 'none';
-    document.getElementById('drawing-setup').style.display = 'none';
+    hideAllScreens();
     document.getElementById('guessing-area').style.display = 'block';
-    document.getElementById('guesses-left').textContent = `{{ _('Guesses left:') }} ${guessesLeft || 3}`;
-    document.getElementById('game-status').innerHTML = '<p>{{ _('The other player is drawing. Watch and guess!') }}</p>';
+    updateGuessesLeft(guessesLeft || 3);
+    document.getElementById('game-status').innerHTML = '<p><i class="fas fa-eye"></i> {{ _('The other player is drawing. Watch and guess!') }}</p>';
     
     guessCanvas = document.getElementById('guess-canvas');
     guessCtx = guessCanvas.getContext('2d');
+    guessCtx.clearRect(0, 0, guessCanvas.width, guessCanvas.height);
+}
+
+function updateGuessesLeft(count) {
+    currentGuessesLeft = count;
+    document.getElementById('guesses-left').innerHTML = `<i class="fas fa-lightbulb"></i> {{ _('Guesses left:') }} ${count}`;
 }
 
 function setupCanvas(canvasId) {
     canvas = document.getElementById(canvasId);
     ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Remove existing listeners first
+    canvas.removeEventListener('mousedown', startDrawingEvent);
+    canvas.removeEventListener('mousemove', draw);
+    canvas.removeEventListener('mouseup', stopDrawingEvent);
+    canvas.removeEventListener('mouseout', stopDrawingEvent);
+    canvas.removeEventListener('touchstart', handleTouchStart);
+    canvas.removeEventListener('touchmove', handleTouchMove);
+    canvas.removeEventListener('touchend', handleTouchEnd);
     
     canvas.addEventListener('mousedown', startDrawingEvent);
     canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
+    canvas.addEventListener('mouseup', stopDrawingEvent);
+    canvas.addEventListener('mouseout', stopDrawingEvent);
     
-    // Touch events for mobile
-    canvas.addEventListener('touchstart', handleTouch);
-    canvas.addEventListener('touchmove', handleTouch);
-    canvas.addEventListener('touchend', stopDrawing);
+    // Touch events for mobile/tablet
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 }
 
+// Brush size display
+const brushSizeInput = document.getElementById('brush-size');
+if (brushSizeInput) {
+    brushSizeInput.addEventListener('input', function() {
+        document.getElementById('brush-size-value').textContent = this.value;
+    });
+}
+
+let lastX = 0, lastY = 0;
+
 function startDrawingEvent(e) {
+    if (!isDrawer) return;
     isDrawing = true;
-    draw(e);
+    const rect = canvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
 }
 
 function draw(e) {
@@ -172,6 +322,7 @@ function draw(e) {
     
     ctx.lineWidth = size;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = color;
     
     ctx.lineTo(x, y);
@@ -184,21 +335,72 @@ function draw(e) {
         connection_id: connectionId,
         drawing: { x, y, color, size, type: 'draw' }
     });
+    
+    lastX = x;
+    lastY = y;
 }
 
-function stopDrawing() {
-    isDrawing = false;
-    ctx.beginPath();
+function stopDrawingEvent() {
+    if (isDrawing) {
+        isDrawing = false;
+        ctx.beginPath();
+        // Send a stroke-end event
+        socket.emit('drawing_data', {
+            connection_id: connectionId,
+            drawing: { type: 'stroke_end' }
+        });
+    }
 }
 
-function handleTouch(e) {
+function handleTouchStart(e) {
     e.preventDefault();
+    if (!isDrawer) return;
+    
     const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
+    const rect = canvas.getBoundingClientRect();
+    lastX = touch.clientX - rect.left;
+    lastY = touch.clientY - rect.top;
+    
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!isDrawing || !isDrawer) return;
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    const color = document.getElementById('color-picker').value;
+    const size = document.getElementById('brush-size').value;
+    
+    ctx.lineWidth = size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = color;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    
+    // Send drawing data
+    socket.emit('drawing_data', {
+        connection_id: connectionId,
+        drawing: { x, y, color, size, type: 'draw' }
     });
-    canvas.dispatchEvent(mouseEvent);
+    
+    lastX = x;
+    lastY = y;
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    stopDrawingEvent();
 }
 
 function clearCanvas() {
@@ -210,7 +412,8 @@ function clearCanvas() {
 }
 
 function submitGuess() {
-    const guess = document.getElementById('guess-input').value.trim();
+    const guessInput = document.getElementById('guess-input');
+    const guess = guessInput.value.trim();
     if (!guess) return;
     
     socket.emit('drawing_guess', {
@@ -218,19 +421,63 @@ function submitGuess() {
         guess: guess
     });
     
-    document.getElementById('guess-input').value = '';
+    guessInput.value = '';
+}
+
+// Allow enter key to submit guess
+const guessInputEl = document.getElementById('guess-input');
+if (guessInputEl) {
+    guessInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            submitGuess();
+        }
+    });
+}
+
+// Allow enter key to start drawing
+const answerInputEl = document.getElementById('answer-input');
+if (answerInputEl) {
+    answerInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            startDrawing();
+        }
+    });
+}
+
+function startNewSession() {
+    // Reload to create a new session
+    location.reload();
 }
 
 // Socket events
+socket.on('session_joined', function(data) {
+    // Partner joined our session
+    currentSession = {
+        id: data.session_id,
+        waiting: false,
+        current_round: data.current_round,
+        total_rounds: data.total_rounds
+    };
+    updateScoreBoard();
+    showStartScreen();
+    document.getElementById('game-status').innerHTML = '<p><i class="fas fa-check-circle"></i> ' + otherUsername + ' {{ _('joined! Start a round.') }}</p>';
+});
+
 socket.on('game_started', function(data) {
+    if (currentSession) {
+        currentSession.current_round = data.round;
+    }
+    updateScoreBoard();
+    
     if (data.drawer_id === myUserId) {
         isDrawer = true;
         showDrawingArea();
-        document.getElementById('game-status').innerHTML = '<p>{{ _('You started the round. Draw your word and let the other player guess.') }}</p>';
+        document.getElementById('game-status').innerHTML = '<p><i class="fas fa-pencil-alt"></i> {{ _('Round') }} ' + data.round + ' - {{ _('You are drawing!') }}</p>';
     } else {
         isDrawer = false;
-        showGuessingArea(data.guesses_left || 3);
-        document.getElementById('game-status').innerHTML = '<p>{{ _('New round started by %(username)s. Start guessing!', username=other_user.username) }}</p>';
+        currentGuessesLeft = data.guesses_left || 3;
+        showGuessingArea(currentGuessesLeft);
+        document.getElementById('game-status').innerHTML = '<p><i class="fas fa-eye"></i> {{ _('Round') }} ' + data.round + ' - ' + data.drawer_name + ' {{ _('is drawing. Start guessing!') }}</p>';
     }
 });
 
@@ -239,9 +486,12 @@ socket.on('drawing_update', function(data) {
         const d = data.drawing;
         if (d.type === 'clear') {
             guessCtx.clearRect(0, 0, guessCanvas.width, guessCanvas.height);
+        } else if (d.type === 'stroke_end') {
+            guessCtx.beginPath();
         } else {
             guessCtx.lineWidth = d.size;
             guessCtx.lineCap = 'round';
+            guessCtx.lineJoin = 'round';
             guessCtx.strokeStyle = d.color;
             guessCtx.lineTo(d.x, d.y);
             guessCtx.stroke();
@@ -252,16 +502,61 @@ socket.on('drawing_update', function(data) {
 });
 
 socket.on('guess_result', function(data) {
-    if (data.correct) {
+    // Update session scores
+    if (currentSession) {
+        currentSession.user1_score = data.user1_score;
+        currentSession.user2_score = data.user2_score;
+        currentSession.current_round = data.current_round;
+    }
+    updateScoreBoard();
+    
+    if (data.session_complete) {
+        // Show session complete screen
+        showSessionComplete(data);
+    } else if (data.correct) {
         alert('{{ _('Correct! The answer was:') }} ' + data.answer);
-        location.reload();
+        showStartScreen();
+        document.getElementById('game-status').innerHTML = '<p><i class="fas fa-check-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else if (data.game_over) {
         alert('{{ _('Game over! The answer was:') }} ' + data.answer);
-        location.reload();
+        showStartScreen();
+        document.getElementById('game-status').innerHTML = '<p><i class="fas fa-times-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else {
-        alert('{{ _('Wrong guess! Try again.') }}');
+        // Wrong guess
         currentGuessesLeft--;
-        document.getElementById('guesses-left').textContent = `{{ _('Guesses left:') }} ${currentGuessesLeft}`;
+        updateGuessesLeft(currentGuessesLeft);
+    }
+});
+
+socket.on('session_ended', function(data) {
+    alert('{{ _('Session ended:') }} ' + data.reason);
+    location.reload();
+});
+
+function showSessionComplete(data) {
+    hideAllScreens();
+    document.getElementById('session-complete').style.display = 'block';
+    
+    let winner = '';
+    if (data.user1_score > data.user2_score) {
+        winner = '{{ current_user.username }} {{ _('wins!') }}';
+    } else if (data.user2_score > data.user1_score) {
+        winner = otherUsername + ' {{ _('wins!') }}';
+    } else {
+        winner = '{{ _("It\'s a tie!") }}';
+    }
+    
+    document.getElementById('final-scores').innerHTML = 
+        '<h3>' + winner + '</h3>' +
+        '<p>{{ current_user.username }}: ' + data.user1_score + ' | ' + otherUsername + ': ' + data.user2_score + '</p>';
+    
+    document.getElementById('game-status').innerHTML = '<p><i class="fas fa-trophy"></i> {{ _('Game Complete!') }}</p>';
+}
+
+// Notify when leaving the page
+window.addEventListener('beforeunload', function() {
+    if (currentSession && currentSession.waiting && currentSession.is_creator) {
+        socket.emit('end_drawing_session', { connection_id: connectionId });
     }
 });
 </script>
