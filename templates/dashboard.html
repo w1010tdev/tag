@@ -84,13 +84,29 @@ function copyToken() {
 
 function refreshToken() {
     if (confirm('{{ _('Are you sure? Your current token will be invalidated.') }}')) {
+        // Get CSRF token from meta tag
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            alert('{{ _('Error: CSRF token not found') }}');
+            return;
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
+        
         fetch('{{ url_for("refresh_token") }}', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             }
-        }).then(() => {
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('{{ _('Failed to refresh token') }}');
+            }
             location.reload();
+        })
+        .catch(error => {
+            alert('{{ _('Error:') }} ' + error.message);
         });
     }
 }
