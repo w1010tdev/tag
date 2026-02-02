@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Shared Clipboard - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Shared Clipboard with {{ other_user.username }}</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back</a>
+    </div>
+    
+    <div class="clipboard-container">
+        <div class="clipboard-pane">
+            <h3>Your Area ({{ current_user.username }})</h3>
+            <textarea id="my-clipboard" class="clipboard-textarea" 
+                      placeholder="Type here... Changes sync in real-time"></textarea>
+        </div>
+        <div class="clipboard-pane">
+            <h3>{{ other_user.username }}'s Area</h3>
+            <textarea id="other-clipboard" class="clipboard-textarea" 
+                      placeholder="Waiting for {{ other_user.username }} to type..." readonly></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+const connectionId = {{ connection.id }};
+const myUserId = {{ current_user.id }};
+const otherUserId = {{ other_user.id }};
+
+// Join clipboard room
+socket.emit('join_clipboard', { connection_id: connectionId });
+
+// Load existing content
+{% if clipboard_data %}
+    {% if current_user.id in clipboard_data %}
+    document.getElementById('my-clipboard').value = {{ clipboard_data[current_user.id].content|tojson }};
+    {% endif %}
+    {% if other_user.id in clipboard_data %}
+    document.getElementById('other-clipboard').value = {{ clipboard_data[other_user.id].content|tojson }};
+    {% endif %}
+{% endif %}
+
+// Send updates
+let timeout;
+document.getElementById('my-clipboard').addEventListener('input', function(e) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        socket.emit('clipboard_update', {
+            connection_id: connectionId,
+            content: e.target.value
+        });
+    }, 500);
+});
+
+// Receive updates
+socket.on('clipboard_sync', function(data) {
+    if (data.user_id === otherUserId) {
+        document.getElementById('other-clipboard').value = data.content;
+    }
+});
+</script>
+{% endblock %}

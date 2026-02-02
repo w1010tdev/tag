@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Social Connect{% endblock %}
+
+{% block content %}
+<div class="container admin-panel">
+    <div class="page-header">
+        <h1>Admin Panel</h1>
+        <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary">Logout</a>
+    </div>
+    
+    <div class="admin-section">
+        <h2>Create Registration Token</h2>
+        <button onclick="createToken()" class="btn btn-primary">Generate New Token</button>
+        <div id="new-token" class="token-result" style="display: none;">
+            <p>New registration token:</p>
+            <div class="token-display">
+                <input type="text" id="new-token-value" readonly>
+                <button onclick="copyNewToken()" class="btn btn-secondary">Copy</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-section">
+        <h2>Registration Tokens</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Token</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for token in tokens %}
+                <tr>
+                    <td class="token-cell">{{ token.token[:20] }}...</td>
+                    <td>
+                        {% if token.is_used %}
+                        <span class="badge badge-used">Used</span>
+                        {% else %}
+                        <span class="badge badge-active">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ token.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="admin-section">
+        <h2>Users</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function createToken() {
+    fetch('{{ url_for("create_admin_token") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('new-token-value').value = data.token;
+        document.getElementById('new-token').style.display = 'block';
+    });
+}
+
+function copyNewToken() {
+    const input = document.getElementById('new-token-value');
+    
+    // Modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('Token copied to clipboard!');
+        }).catch(() => {
+            // Fallback for older browsers
+            input.select();
+            document.execCommand('copy');
+            alert('Token copied to clipboard!');
+        });
+    } else {
+        // Fallback for older browsers
+        input.select();
+        document.execCommand('copy');
+        alert('Token copied to clipboard!');
+    }
+}
+</script>
+{% endblock %}
