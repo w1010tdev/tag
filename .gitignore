@@ -41,6 +41,8 @@ database.db
 # Logs
 *.log
 app.log
+nohup.out
 
-# Test files
+# Test and demo files
 test_app.py
+demo.py
