@@ -127,12 +127,12 @@ function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
     if (status.online) {
         if (status.page === 'drawing') {
-            statusEl.innerHTML = '<span class="status-online"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _('is in Drawing') }}</span>';
+            statusEl.innerHTML = '<span class="status-online"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _("is in Drawing") }}</span>';
         } else {
-            statusEl.innerHTML = '<span class="status-away"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _('is online') }}</span>';
+            statusEl.innerHTML = '<span class="status-away"><i class="fas fa-circle"></i> ' + otherUsername + ' {{ _("is online") }}</span>';
         }
     } else {
-        statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> ' + otherUsername + ' {{ _('is offline') }}</span>';
+        statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> ' + otherUsername + ' {{ _("is offline") }}</span>';
     }
 }
 
