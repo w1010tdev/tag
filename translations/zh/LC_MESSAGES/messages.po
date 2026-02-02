@@ -1,0 +1,386 @@
+# Chinese translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-02-02 08:09+0000\n"
+"PO-Revision-Date: 2026-02-02 08:05+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh\n"
+"Language-Team: zh <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: templates/admin_login.html:3 templates/admin_login.html:8
+msgid "Admin Login"
+msgstr "管理员登录"
+
+#: templates/admin_login.html:3 templates/admin_panel.html:3
+#: templates/base.html:6 templates/base.html:15 templates/base.html:40
+#: templates/chat.html:3 templates/clipboard.html:3 templates/connection.html:3
+#: templates/dashboard.html:3 templates/drawing.html:3 templates/error.html:3
+#: templates/login.html:3 templates/register.html:3
+msgid "Social Connect"
+msgstr "社交连接"
+
+#: templates/admin_login.html:15
+msgid "Admin Password"
+msgstr "管理员密码"
+
+#: templates/admin_login.html:18 templates/base.html:21 templates/index.html:9
+#: templates/login.html:3 templates/login.html:8 templates/login.html:22
+#: templates/register.html:32
+msgid "Login"
+msgstr "登录"
+
+#: templates/admin_panel.html:3 templates/admin_panel.html:8
+msgid "Admin Panel"
+msgstr "管理员面板"
+
+#: templates/admin_panel.html:9 templates/base.html:19
+msgid "Logout"
+msgstr "登出"
+
+#: templates/admin_panel.html:13
+msgid "Create Registration Token"
+msgstr "创建注册令牌"
+
+#: templates/admin_panel.html:14
+msgid "Generate New Token"
+msgstr "生成新令牌"
+
+#: templates/admin_panel.html:16
+msgid "New registration token:"
+msgstr "新注册令牌："
+
+#: templates/admin_panel.html:19 templates/dashboard.html:16
+msgid "Copy"
+msgstr "复制"
+
+#: templates/admin_panel.html:25
+msgid "Registration Tokens"
+msgstr "注册令牌"
+
+#: templates/admin_panel.html:29
+msgid "Token"
+msgstr "令牌"
+
+#: templates/admin_panel.html:30
+msgid "Status"
+msgstr "状态"
+
+#: templates/admin_panel.html:31 templates/admin_panel.html:59
+msgid "Created"
+msgstr "创建时间"
+
+#: templates/admin_panel.html:40
+msgid "Used"
+msgstr "已使用"
+
+#: templates/admin_panel.html:42
+msgid "Active"
+msgstr "有效"
+
+#: templates/admin_panel.html:53
+msgid "Users"
+msgstr "用户"
+
+#: templates/admin_panel.html:57
+msgid "ID"
+msgstr "ID"
+
+#: templates/admin_panel.html:58 templates/login.html:15
+#: templates/register.html:15
+msgid "Username"
+msgstr "用户名"
+
+#: templates/admin_panel.html:96 templates/admin_panel.html:101
+#: templates/admin_panel.html:107
+msgid "Token copied to clipboard!"
+msgstr "令牌已复制到剪贴板！"
+
+#: templates/base.html:18 templates/dashboard.html:3
+msgid "Dashboard"
+msgstr "控制台"
+
+#: templates/base.html:22 templates/index.html:10 templates/login.html:24
+#: templates/register.html:3 templates/register.html:8
+#: templates/register.html:30
+msgid "Register"
+msgstr "注册"
+
+#: templates/base.html:40
+msgid "All rights reserved."
+msgstr "版权所有。"
+
+#: templates/base.html:42
+msgid "Admin Portal"
+msgstr "管理员入口"
+
+#: templates/chat.html:3 templates/chat.html:8
+#, python-format
+msgid "Chat with %(username)s"
+msgstr "与 %(username)s 聊天"
+
+#: templates/chat.html:9 templates/clipboard.html:9 templates/drawing.html:9
+msgid "Back"
+msgstr "返回"
+
+#: templates/chat.html:53
+msgid "Type a message..."
+msgstr "输入消息..."
+
+#: templates/clipboard.html:3 templates/connection.html:20
+#: templates/index.html:25
+msgid "Shared Clipboard"
+msgstr "共享剪贴板"
+
+#: templates/clipboard.html:8
+#, python-format
+msgid "Shared Clipboard with %(username)s"
+msgstr "与 %(username)s 的共享剪贴板"
+
+#: templates/clipboard.html:14
+#, python-format
+msgid "Your Area (%(username)s)"
+msgstr "您的区域 (%(username)s)"
+
+#: templates/clipboard.html:16
+msgid "Type here... Changes sync in real-time"
+msgstr "在此输入... 更改将实时同步"
+
+#: templates/clipboard.html:19
+#, python-format
+msgid "%(username)s's Area"
+msgstr "%(username)s 的区域"
+
+#: templates/clipboard.html:21
+#, python-format
+msgid "Waiting for %(username)s to type..."
+msgstr "等待 %(username)s 输入..."
+
+#: templates/connection.html:3
+msgid "Connection"
+msgstr "连接"
+
+#: templates/connection.html:8
+#, python-format
+msgid "Connection with %(username)s"
+msgstr "与 %(username)s 的连接"
+
+#: templates/connection.html:9
+msgid "Back to Dashboard"
+msgstr "返回控制台"
+
+#: templates/connection.html:15
+msgid "Private Chat"
+msgstr "私密聊天"
+
+#: templates/connection.html:16
+msgid "Real-time messaging with emoji"
+msgstr "实时消息与表情符号"
+
+#: templates/connection.html:21
+msgid "Real-time synchronized text areas"
+msgstr "实时同步文本区域"
+
+#: templates/connection.html:25 templates/drawing.html:3
+#: templates/index.html:30
+msgid "Drawing Game"
+msgstr "绘画游戏"
+
+#: templates/connection.html:26
+msgid "Play Pictionary together"
+msgstr "一起玩你画我猜"
+
+#: templates/dashboard.html:7
+#, python-format
+msgid "Welcome, %(username)s!"
+msgstr "欢迎，%(username)s！"
+
+#: templates/dashboard.html:10
+msgid "Your Invite Token"
+msgstr "您的邀请令牌"
+
+#: templates/dashboard.html:12
+msgid "Share this link with others to connect:"
+msgstr "分享此链接以与他人连接："
+
+#: templates/dashboard.html:18
+msgid "Refresh Token"
+msgstr "刷新令牌"
+
+#: templates/dashboard.html:19
+msgid "Token is one-time use and will be invalidated after someone uses it"
+msgstr "令牌为一次性使用，使用后将失效"
+
+#: templates/dashboard.html:24
+msgid "Your Connections"
+msgstr "您的连接"
+
+#: templates/dashboard.html:30
+msgid "Connected:"
+msgstr "已连接："
+
+#: templates/dashboard.html:34
+msgid "Chat"
+msgstr "聊天"
+
+#: templates/dashboard.html:41
+msgid "Clipboard"
+msgstr "剪贴板"
+
+#: templates/dashboard.html:48
+msgid "Drawing"
+msgstr "绘画"
+
+#: templates/dashboard.html:58
+msgid "No connections yet. Share your invite token to connect with others!"
+msgstr "还没有连接。分享您的邀请令牌以与他人连接！"
+
+#: templates/dashboard.html:70 templates/dashboard.html:75
+#: templates/dashboard.html:81
+msgid "Link copied to clipboard!"
+msgstr "链接已复制到剪贴板！"
+
+#: templates/dashboard.html:86
+msgid "Are you sure? Your current token will be invalidated."
+msgstr "您确定吗？您当前的令牌将失效。"
+
+#: templates/drawing.html:8
+#, python-format
+msgid "Drawing Game with %(username)s"
+msgstr "与 %(username)s 的绘画游戏"
+
+#: templates/drawing.html:14
+msgid "Ready to play! Click \"Start New Round\" to begin."
+msgstr "准备开始！点击"开始新回合"开始游戏。"
+
+#: templates/drawing.html:18
+msgid "Start New Round"
+msgstr "开始新回合"
+
+#: templates/drawing.html:22
+msgid "Enter the word to draw:"
+msgstr "输入要绘制的词："
+
+#: templates/drawing.html:23
+msgid "Enter a word..."
+msgstr "输入一个词..."
+
+#: templates/drawing.html:24
+msgid "Start Drawing"
+msgstr "开始绘画"
+
+#: templates/drawing.html:25
+msgid "Cancel"
+msgstr "取消"
+
+#: templates/drawing.html:31
+msgid "Clear"
+msgstr "清除"
+
+#: templates/drawing.html:41
+msgid "Enter your guess..."
+msgstr "输入您的猜测..."
+
+#: templates/drawing.html:42
+msgid "Guess"
+msgstr "猜测"
+
+#: templates/drawing.html:87
+msgid "Please enter a word!"
+msgstr "请输入一个词！"
+
+#: templates/drawing.html:104
+msgid "You are drawing! Draw your word and let the other player guess."
+msgstr "您在绘画！画出您的词让对方猜测。"
+
+#: templates/drawing.html:112 templates/drawing.html:234
+msgid "Guesses left:"
+msgstr "剩余猜测次数："
+
+#: templates/drawing.html:113
+msgid "The other player is drawing. Watch and guess!"
+msgstr "对方正在绘画。观看并猜测！"
+
+#: templates/drawing.html:226
+msgid "Correct! The answer was:"
+msgstr "正确！答案是："
+
+#: templates/drawing.html:229
+msgid "Game over! The answer was:"
+msgstr "游戏结束！答案是："
+
+#: templates/drawing.html:232
+msgid "Wrong guess! Try again."
+msgstr "猜错了！再试一次。"
+
+#: templates/error.html:3 templates/error.html:8
+msgid "Error"
+msgstr "错误"
+
+#: templates/error.html:10
+msgid "Go to Dashboard"
+msgstr "前往控制台"
+
+#: templates/index.html:6
+msgid "Welcome to Social Connect"
+msgstr "欢迎来到社交连接"
+
+#: templates/index.html:7
+msgid "Connect with friends and enjoy interactive features together"
+msgstr "与朋友连接，一起享受互动功能"
+
+#: templates/index.html:20
+msgid "Easy Connections"
+msgstr "轻松连接"
+
+#: templates/index.html:21
+msgid "Share your unique invite token to connect with friends instantly"
+msgstr "分享您的专属邀请令牌，立即与朋友连接"
+
+#: templates/index.html:26
+msgid "Real-time synchronized text areas for seamless collaboration"
+msgstr "实时同步文本区域，无缝协作"
+
+#: templates/index.html:31
+msgid "Play Pictionary-style games with your connections"
+msgstr "与您的连接一起玩你画我猜游戏"
+
+#: templates/login.html:19 templates/register.html:21
+msgid "Password"
+msgstr "密码"
+
+#: templates/login.html:24
+msgid "Don't have an account?"
+msgstr "还没有账户？"
+
+#: templates/register.html:18
+msgid "3-20 characters, letters, numbers, underscores only"
+msgstr "3-20个字符，仅限字母、数字和下划线"
+
+#: templates/register.html:23
+msgid "Minimum 8 characters"
+msgstr "最少8个字符"
+
+#: templates/register.html:26
+msgid "Admin Token"
+msgstr "管理员令牌"
+
+#: templates/register.html:28
+msgid "Enter admin-provided registration token"
+msgstr "输入管理员提供的注册令牌"
+
+#: templates/register.html:32
+msgid "Already have an account?"
+msgstr "已经有账户？"
+
+

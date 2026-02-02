@@ -4,6 +4,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_babel import Babel, gettext as _, get_locale
 import secrets
 import os
 import re
@@ -27,6 +28,22 @@ app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'F
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit for CSRF tokens
+
+# Babel configuration for i18n
+app.config['BABEL_DEFAULT_LOCALE'] = 'en'
+app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'zh']
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+
+babel = Babel(app)
+
+@babel.localeselector
+def get_user_locale():
+    # Check if user explicitly set a language
+    lang = session.get('language')
+    if lang in app.config['BABEL_SUPPORTED_LOCALES']:
+        return lang
+    # Otherwise, use browser preference
+    return request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES']) or 'en'
 
 # Admin password
 admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
@@ -69,6 +86,11 @@ db_init()
 def load_user(user_id):
     return User.get_by_id(int(user_id))
 
+# Make get_locale available in templates
+@app.context_processor
+def inject_locale():
+    return {'get_locale': get_locale}
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -99,6 +121,12 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
+
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    if lang in app.config['BABEL_SUPPORTED_LOCALES']:
+        session['language'] = lang
+    return redirect(request.referrer or url_for('index'))
 
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per hour")

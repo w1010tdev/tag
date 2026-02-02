@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Login - Social Connect{% endblock %}
+{% block title %}{{ _('Admin Login') }} - {{ _('Social Connect') }}{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <h2>Admin Login</h2>
+        <h2>{{ _('Admin Login') }}</h2>
         {% if error %}
         <div class="alert alert-error">{{ error }}</div>
         {% endif %}
         <form method="POST" class="auth-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
-                <label for="password">Admin Password</label>
+                <label for="password">{{ _('Admin Password') }}</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Login</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ _('Login') }}</button>
         </form>
     </div>
 </div>

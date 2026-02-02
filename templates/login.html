@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Social Connect{% endblock %}
+{% block title %}{{ _('Login') }} - {{ _('Social Connect') }}{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <h2>Login</h2>
+        <h2>{{ _('Login') }}</h2>
         {% if error %}
         <div class="alert alert-error">{{ error }}</div>
         {% endif %}
         <form method="POST" class="auth-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">{{ _('Username') }}</label>
                 <input type="text" id="username" name="username" required>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{ _('Password') }}</label>
                 <input type="password" id="password" name="password" required minlength="8">
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Login</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ _('Login') }}</button>
         </form>
-        <p class="auth-footer">Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+        <p class="auth-footer">{{ _("Don't have an account?") }} <a href="{{ url_for('register') }}">{{ _('Register') }}</a></p>
     </div>
 </div>
 {% endblock %}
