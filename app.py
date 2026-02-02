@@ -462,4 +462,6 @@ def handle_mark_read(data):
     ReadStatus.update_chat_read(current_user.id, connection_id, message_id)
 
 if __name__ == '__main__':
+    # Note: allow_unsafe_werkzeug=True is for development only
+    # For production, use a proper WSGI server like Gunicorn
     socketio.run(app, debug=False, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
