@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Register - Social Connect{% endblock %}
+{% block title %}{{ _('Register') }} - {{ _('Social Connect') }}{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <h2>Register</h2>
+        <h2>{{ _('Register') }}</h2>
         {% if error %}
         <div class="alert alert-error">{{ error }}</div>
         {% endif %}
         <form method="POST" class="auth-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">{{ _('Username') }}</label>
                 <input type="text" id="username" name="username" required 
                        pattern="[a-zA-Z0-9_]{3,20}" 
-                       title="3-20 characters, letters, numbers, underscores only">
+                       title="{{ _('3-20 characters, letters, numbers, underscores only') }}">
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{ _('Password') }}</label>
                 <input type="password" id="password" name="password" required minlength="8"
-                       title="Minimum 8 characters">
+                       title="{{ _('Minimum 8 characters') }}">
             </div>
             <div class="form-group">
-                <label for="admin_token">Admin Token</label>
+                <label for="admin_token">{{ _('Admin Token') }}</label>
                 <input type="text" id="admin_token" name="admin_token" required 
-                       placeholder="Enter admin-provided registration token">
+                       placeholder="{{ _('Enter admin-provided registration token') }}">
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Register</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ _('Register') }}</button>
         </form>
-        <p class="auth-footer">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        <p class="auth-footer">{{ _('Already have an account?') }} <a href="{{ url_for('login') }}">{{ _('Login') }}</a></p>
     </div>
 </div>
 {% endblock %}
