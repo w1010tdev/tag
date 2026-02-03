@@ -47,6 +47,9 @@ const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
 
+// Configuration constants
+const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
+
 let roomJoined = false;
 let isSocketConnected = false;
 
@@ -152,7 +155,7 @@ function sendMessage() {
     let timeoutId = setTimeout(() => {
         sendBtn.disabled = false;
         showNotification('{{ _('Message send timeout. Please try again.') }}', 'error');
-    }, 10000); // 10 second timeout
+    }, SOCKET_ACK_TIMEOUT);
     
     socket.emit('send_message', {
         connection_id: connectionId,

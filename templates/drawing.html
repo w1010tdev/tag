@@ -81,6 +81,9 @@ const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
 
+// Configuration constants
+const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
+
 let isDrawing = false;
 let isDrawer = false;
 let canvas, ctx, guessCanvas, guessCtx;
@@ -284,7 +287,8 @@ function startDrawing() {
     // Add timeout for acknowledgment
     let timeoutId = setTimeout(() => {
         showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
-    }, 10000); // 10 second timeout
+        // Could add UI reset here if needed in future
+    }, SOCKET_ACK_TIMEOUT);
     
     socket.emit('drawing_start', {
         connection_id: connectionId,
@@ -601,8 +605,13 @@ socket.on('guess_result', function(data) {
 });
 
 socket.on('session_ended', function(data) {
-    showNotification('{{ _('Session ended:') }} ' + data.reason, 'warning', 5000);
-    setTimeout(() => location.reload(), 2000);
+    showNotification('{{ _('Session ended:') }} ' + data.reason, 'warning', 8000);
+    // Give user time to see the message before reloading
+    setTimeout(() => {
+        if (confirm('{{ _('Session ended. Click OK to reload the page.') }}')) {
+            location.reload();
+        }
+    }, 2000);
 });
 
 function showSessionComplete(data) {
