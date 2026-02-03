@@ -21,6 +21,8 @@
                     <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> {{ _('Login') }}</a>
                     <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> {{ _('Register') }}</a>
                 {% endif %}
+                <!-- Simple inline socket status for Android compatibility -->
+                <span id="simple-socket-status" style="display: none; margin: 0 10px; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">⏳</span>
                 <div class="language-selector">
                     <a href="{{ url_for('set_language', lang='en') }}" class="lang-link {% if get_locale() == 'en' %}active{% endif %}">EN</a>
                     <span class="lang-divider">|</span>
@@ -45,7 +47,7 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <p>&copy; 2024 {{ _('Social Connect') }}. {{ _('All rights reserved.') }}</p>
+                <p>&copy; 2024 {{ _('Social Connect') }}. {{ _('All rights reserved.') }} | v1.0.0</p>
                 <div class="footer-links">
                     <a href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield"></i> {{ _('Admin Portal') }}</a>
                 </div>
@@ -102,27 +104,56 @@
             }
         }
         
-        // Socket status indicator
+        // Socket status indicator - dual approach for Android compatibility
         function updateSocketStatus(status, message) {
+            // Update fancy status indicator (may not work on all Android devices)
             const statusEl = document.getElementById('socket-status');
-            if (!statusEl) return;
+            if (statusEl) {
+                statusEl.className = 'socket-status ' + status;
+                
+                if (status === 'connecting') {
+                    statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + message;
+                    statusEl.style.display = 'block';
+                } else if (status === 'connected') {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+                    statusEl.style.display = 'block';
+                    // Keep showing for 5 seconds instead of 2
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 5000);
+                } else if (status === 'disconnected') {
+                    statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
+                    statusEl.style.display = 'block';
+                    // Keep showing disconnected state persistently
+                }
+            }
             
-            statusEl.className = 'socket-status ' + status;
-            
-            if (status === 'connecting') {
-                statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + message;
-                statusEl.style.display = 'block';
-            } else if (status === 'connected') {
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
-                statusEl.style.display = 'block';
-                // Keep showing for 5 seconds instead of 2
-                setTimeout(() => {
-                    statusEl.style.display = 'none';
-                }, 5000);
-            } else if (status === 'disconnected') {
-                statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
-                statusEl.style.display = 'block';
-                // Keep showing disconnected state persistently
+            // Update simple inline status (works on all devices including Android)
+            const simpleStatusEl = document.getElementById('simple-socket-status');
+            if (simpleStatusEl) {
+                simpleStatusEl.style.display = 'inline-block';
+                
+                if (status === 'connecting') {
+                    simpleStatusEl.textContent = '⏳ ' + message;
+                    simpleStatusEl.style.background = '#FEF3C7';
+                    simpleStatusEl.style.color = '#92400E';
+                    simpleStatusEl.style.borderColor = '#F59E0B';
+                } else if (status === 'connected') {
+                    simpleStatusEl.textContent = '✓ ' + message;
+                    simpleStatusEl.style.background = '#D1FAE5';
+                    simpleStatusEl.style.color = '#065F46';
+                    simpleStatusEl.style.borderColor = '#10B981';
+                    // Keep showing for 5 seconds
+                    setTimeout(() => {
+                        simpleStatusEl.style.display = 'none';
+                    }, 5000);
+                } else if (status === 'disconnected') {
+                    simpleStatusEl.textContent = '✗ ' + message;
+                    simpleStatusEl.style.background = '#FEE2E2';
+                    simpleStatusEl.style.color = '#991B1B';
+                    simpleStatusEl.style.borderColor = '#DC2626';
+                    // Keep showing disconnected state persistently
+                }
             }
         }
         
