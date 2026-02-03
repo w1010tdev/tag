@@ -71,6 +71,15 @@ socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threa
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
 
+# Exempt Socket.IO from CSRF protection
+# Socket.IO uses its own authentication via session cookies
+@csrf.exempt
+def socketio_exempt():
+    pass
+
+# Apply CSRF exemption to Socket.IO endpoint
+csrf.exempt(socketio.server.eio.handle_request)
+
 # Initialize rate limiter
 limiter = Limiter(
     app=app,
