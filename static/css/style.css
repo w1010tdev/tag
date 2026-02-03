@@ -724,7 +724,7 @@ body {
     }
     
     .clipboard-textarea {
-        min-height: 200px;
+        min-height: 220px;
     }
     
     #drawing-canvas, #guess-canvas {
