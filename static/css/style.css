@@ -453,7 +453,7 @@ body {
 
 .clipboard-drawing-wrap canvas {
     width: 100%;
-    height: 320px;
+    height: auto;
     border-radius: var(--border-radius);
     background: #ffffff;
     display: block;
@@ -1053,10 +1053,6 @@ body {
     .toolbar-dropdown {
         right: auto;
         left: 0;
-    }
-
-    .clipboard-drawing-wrap canvas {
-        height: 220px;
     }
 
     .clipboard-display.drawing-active {

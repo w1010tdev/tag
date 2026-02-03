@@ -486,7 +486,7 @@ def handle_clipboard_drawing(data):
     emit('clipboard_drawing_update', {
         'user_id': current_user.id,
         'drawing': drawing
-    }, room=f'clipboard_{connection_id}', include_self=True)
+    }, room=f'clipboard_{connection_id}')
 
 @socketio.on('clipboard_update')
 def handle_clipboard_update(data):
