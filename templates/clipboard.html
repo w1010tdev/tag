@@ -151,6 +151,8 @@ function shouldUpdateLocalClipboard(content) {
 
 // Send updates with shorter delay for faster sync
 let timeout;
+let isComposing = false; // Track IME composition state
+
 function sendClipboardUpdate(content) {
     if (!isSocketConnected) {
         showNotification('{{ _('Not connected. Changes will sync when connection is restored.') }}', 'warning', 3000);
@@ -164,7 +166,16 @@ function sendClipboardUpdate(content) {
     }
 }
 
+myClipboard.addEventListener('compositionstart', function(e) {
+    isComposing = true;
+});
+
 myClipboard.addEventListener('input', function(e) {
+    // Skip input event during IME composition to avoid conflicts
+    if (isComposing) {
+        return;
+    }
+    
     clearTimeout(timeout);
     lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
@@ -184,6 +195,7 @@ myClipboard.addEventListener('compositionupdate', function(e) {
 });
 
 myClipboard.addEventListener('compositionend', function(e) {
+    isComposing = false;
     // Final sync when composition completes
     clearTimeout(timeout);
     lastLocalClipboard = e.target.value;

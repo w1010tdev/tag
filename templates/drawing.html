@@ -582,15 +582,11 @@ function endGameEarly() {
             connection_id: connectionId,
             session_id: currentSession.id 
         }, function(response) {
-            if (response && response.success) {
-                // Show session complete with current scores
-                showSessionComplete({
-                    user1_score: currentSession.user1_score,
-                    user2_score: currentSession.user2_score
-                });
-            } else {
+            if (!response || !response.success) {
                 showNotification('{{ _('Failed to end game. Please try again.') }}', 'error');
             }
+            // Success: server will broadcast 'game_ended_early' to all players,
+            // and the corresponding event handler will show the session complete UI.
         });
     }
 }
@@ -722,12 +718,5 @@ function showSessionComplete(data) {
     
     document.getElementById('game-status').innerHTML = '<p><i class="fas fa-trophy"></i> {{ _('Game Complete!') }}</p>';
 }
-
-// Notify when leaving the page
-window.addEventListener('beforeunload', function() {
-    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
-        socket.emit('end_drawing_session', { connection_id: connectionId });
-    }
-});
 </script>
 {% endblock %}

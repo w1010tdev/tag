@@ -642,7 +642,7 @@ def handle_create_new_game_session(data):
         return {'success': False, 'error': 'Access denied'}
     
     # Create new session (this will deactivate old ones)
-    session_id = DrawingSession.create(connection_id, current_user.id)
+    session_id = DrawingSession.create(connection_id, current_user.id, DEFAULT_ROUNDS_PER_SESSION)
     
     return {'success': True, 'session_id': session_id}
 
