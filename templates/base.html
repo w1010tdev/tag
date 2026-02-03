@@ -159,10 +159,10 @@
         
         // Close menu when clicking a link and when clicking outside the menu
         document.addEventListener('DOMContentLoaded', function() {
-            const navLinksLinks = document.querySelectorAll('.nav-links a');
+            const navigationLinks = document.querySelectorAll('.nav-links a');
             
             // Close when a navigation link is clicked
-            navLinksLinks.forEach(link => {
+            navigationLinks.forEach(link => {
                 link.addEventListener('click', function() {
                     const navLinksEl = document.getElementById('nav-links');
                     const hamburger = document.getElementById('hamburger-menu');
