@@ -14,113 +14,8 @@
     <script src="//fastly.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js" onerror="handleSocketLibraryError()"></script>
     
     <script>
-        // ===== DEBUG PANEL FUNCTIONS =====
-        let debugEventCount = 0;
-        
-        function initDebugPanel() {
-            const debugPanel = document.getElementById('debug-panel');
-            const debugLog = document.getElementById('debug-log');
-            const debugTime = document.getElementById('debug-time');
-            const debugSocketioStatus = document.getElementById('debug-socketio-status');
-            
-            // Update time
-            function updateTime() {
-                if (debugTime) {
-                    debugTime.textContent = new Date().toLocaleTimeString('zh-CN');
-                }
-            }
-            setInterval(updateTime, 1000);
-            updateTime();
-            
-            // Check socket.io library status
-            if (typeof io === 'undefined') {
-                addDebugLog('❌ CRITICAL: Socket.io库未加载 | Socket.io library not loaded', 'error');
-                if (debugSocketioStatus) {
-                    debugSocketioStatus.textContent = '❌ 未加载 Not Loaded';
-                    debugSocketioStatus.style.color = '#EF4444';
-                }
-            } else {
-                addDebugLog('✅ Socket.io库已加载 | Socket.io library loaded', 'success');
-                if (debugSocketioStatus) {
-                    debugSocketioStatus.textContent = '✅ 已加载 Loaded';
-                    debugSocketioStatus.style.color = '#10B981';
-                }
-            }
-            
-            // Show debug panel on pages with socket
-            const currentPath = window.location.pathname;
-            if (currentPath.includes('/chat/') || currentPath.includes('/clipboard/') || currentPath.includes('/drawing/')) {
-                if (debugPanel) {
-                    debugPanel.style.display = 'block';
-                    addDebugLog('🔧 调试面板已启动 | Debug panel initialized', 'info');
-                }
-            }
-        }
-        
-        function addDebugLog(message, type = 'info') {
-            const debugLog = document.getElementById('debug-log');
-            const debugEventCountEl = document.getElementById('debug-event-count');
-            
-            if (debugLog) {
-                const time = new Date().toLocaleTimeString('zh-CN');
-                const colors = {
-                    'info': '#60A5FA',
-                    'success': '#10B981',
-                    'warning': '#F59E0B',
-                    'error': '#EF4444'
-                };
-                const color = colors[type] || colors.info;
-                
-                const logEntry = document.createElement('div');
-                logEntry.style.marginBottom = '3px';
-                logEntry.style.color = color;
-                logEntry.innerHTML = `[${time}] ${message}`;
-                
-                debugLog.insertBefore(logEntry, debugLog.firstChild);
-                
-                // Keep only last 50 entries
-                while (debugLog.children.length > 50) {
-                    debugLog.removeChild(debugLog.lastChild);
-                }
-                
-                debugEventCount++;
-                if (debugEventCountEl) {
-                    debugEventCountEl.textContent = debugEventCount;
-                }
-            }
-            
-            // Also log to console
-            console.log(`[DEBUG] ${message}`);
-        }
-        
-        function updateDebugConnectionStatus(status, message) {
-            const debugConnectionStatus = document.getElementById('debug-connection-status');
-            if (debugConnectionStatus) {
-                const statusMap = {
-                    'connecting': { text: '🔄 连接中 Connecting', color: '#F59E0B' },
-                    'connected': { text: '✅ 已连接 Connected', color: '#10B981' },
-                    'disconnected': { text: '❌ 断开 Disconnected', color: '#EF4444' },
-                    'error': { text: '⚠️ 错误 Error', color: '#EF4444' }
-                };
-                const statusInfo = statusMap[status] || { text: '❓ 未知 Unknown', color: '#9CA3AF' };
-                debugConnectionStatus.textContent = statusInfo.text;
-                debugConnectionStatus.style.color = statusInfo.color;
-            }
-        }
-        
-        // Initialize debug panel when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initDebugPanel);
-        } else {
-            initDebugPanel();
-        }
-        
-        // ===== ORIGINAL FUNCTIONS =====
         // Detect if socket.io library failed to load
         function handleSocketLibraryError() {
-            addDebugLog('❌ Socket.io CDN加载失败 | Socket.io CDN load failed', 'error');
-            updateDebugConnectionStatus('error', 'CDN Failed');
-            
             const simpleStatus = document.getElementById('simple-socket-status');
             if (simpleStatus) {
                 simpleStatus.style.display = 'inline-block';
@@ -192,15 +87,6 @@
         
         // Socket status indicator - dual approach for Android compatibility
         function updateSocketStatus(status, message) {
-            // Log to debug panel
-            const logTypeMap = {
-                'connecting': 'info',
-                'connected': 'success',
-                'disconnected': 'error'
-            };
-            addDebugLog(`🔌 状态更新 Status: ${status} - ${message}`, logTypeMap[status] || 'info');
-            updateDebugConnectionStatus(status, message);
-            
             // Update fancy status indicator (may not work on all Android devices)
             const statusEl = document.getElementById('socket-status');
             if (statusEl) {
@@ -291,24 +177,6 @@
     <!-- Socket status indicator -->
     <div id="socket-status" class="socket-status" style="display: none;">
         <i class="fas fa-circle-notch fa-spin"></i> {{ _('Connecting...') }}
-    </div>
-    
-    <!-- Socket Debugging Panel -->
-    <div id="debug-panel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #1F2937; color: #F9FAFB; padding: 10px; max-height: 300px; overflow-y: auto; z-index: 99999; font-family: monospace; font-size: 12px; border-top: 3px solid #10B981;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #374151;">
-            <div style="font-weight: bold; font-size: 14px;">🔧 Socket调试面板 | Socket Debug Panel</div>
-            <button onclick="document.getElementById('debug-panel').style.display='none'" style="background: #DC2626; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">关闭 Close</button>
-        </div>
-        <div id="debug-info" style="line-height: 1.6;">
-            <div>⏰ 时间 Time: <span id="debug-time">--</span></div>
-            <div>📡 Socket.io状态 Status: <span id="debug-socketio-status" style="font-weight: bold; color: #FCD34D;">检查中...</span></div>
-            <div>🔌 连接状态 Connection: <span id="debug-connection-status" style="font-weight: bold; color: #FCD34D;">未知 Unknown</span></div>
-            <div>📊 事件数 Events: <span id="debug-event-count">0</span></div>
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #374151;">
-                <div style="font-weight: bold; margin-bottom: 5px;">📜 事件日志 Event Log:</div>
-                <div id="debug-log" style="max-height: 150px; overflow-y: auto; background: #111827; padding: 8px; border-radius: 4px; font-size: 11px;"></div>
-            </div>
-        </div>
     </div>
     
     <main class="main-content">
