@@ -41,27 +41,92 @@
 </div>
 
 <script>
-const socket = io();
+// Diagnostic: Check if socket.io is available
+if (typeof io === 'undefined') {
+    document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+}
+
+let socket = io();
+
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
 
+// Configuration constants
+const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
+
 let roomJoined = false;
+let isSocketConnected = false;
 
-// Track page for online status
-socket.emit('set_page', { page: 'chat', connection_id: connectionId });
-
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
+// Show initial connecting status
+if (typeof updateSocketStatus === 'function') {
+    updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+} else {
+    // Fallback if function not defined
+    const simpleStatus = document.getElementById('simple-socket-status');
+    if (simpleStatus) {
+        simpleStatus.style.display = 'inline-block';
+        simpleStatus.textContent = '⏳ {{ _('Connecting...') }}';
     }
+}
+
+// Socket connection event handlers
+socket.on('connect', function() {
+    isSocketConnected = true;
+    updateSocketStatus('connected', '{{ _('Connected') }}');
+    
+    // Track page for online status
+    socket.emit('set_page', { page: 'chat', connection_id: connectionId });
+    
+    // Join chat room with acknowledgment
+    socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        } else {
+            showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
+        }
+    });
+    
+    // Get partner status after joining room
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
 });
+
+socket.on('connect_error', function(error) {
+    isSocketConnected = false;
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    handleSocketError(error, 'chat connect');
+});
+
+socket.on('disconnect', function(reason) {
+    isSocketConnected = false;
+    roomJoined = false;
+    updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
+    showNotification('{{ _('Connection lost. Attempting to reconnect...') }}', 'warning', 3000);
+});
+
+socket.on('reconnect', function(attemptNumber) {
+    updateSocketStatus('connected', '{{ _('Reconnected') }}');
+    showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
+});
+
+socket.on('reconnect_attempt', function(attemptNumber) {
+    updateSocketStatus('connecting', '{{ _('Reconnecting...') }} (' + attemptNumber + ')');
+});
+
+socket.on('reconnect_error', function(error) {
+    handleSocketError(error, 'chat reconnect');
+});
+
+socket.on('reconnect_failed', function() {
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    showNotification('{{ _('Unable to reconnect. Please refresh the page.') }}', 'error', 0);
+});
+
+// Track page for online status (initial)
+// Moved to connect event handler to ensure socket is connected
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -76,21 +141,11 @@ function updatePartnerStatus(status) {
     }
 }
 
-// Join chat room with acknowledgment
-socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
-    if (ack) {
-        roomJoined = true;
+// Get partner status after socket connects (handled in connect event)
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
     }
-});
-
-// Re-join on reconnect
-socket.on('connect', function() {
-    socket.emit('set_page', { page: 'chat', connection_id: connectionId });
-    socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
-        if (ack) {
-            roomJoined = true;
-        }
-    });
 });
 
 // Send message function
@@ -100,8 +155,13 @@ function sendMessage() {
     
     if (!message) return;
     
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
+        return;
+    }
+    
     if (!roomJoined) {
-        alert('{{ _('Connecting... Please try again in a moment.') }}');
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
         return;
     }
     
@@ -109,14 +169,22 @@ function sendMessage() {
     const sendBtn = document.getElementById('send-btn');
     sendBtn.disabled = true;
     
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        sendBtn.disabled = false;
+        showNotification('{{ _('Message send timeout. Please try again.') }}', 'error');
+    }, SOCKET_ACK_TIMEOUT);
+    
     socket.emit('send_message', {
         connection_id: connectionId,
         message: message
     }, function(ack) {
+        clearTimeout(timeoutId);
         sendBtn.disabled = false;
+        
         if (!ack || !ack.success) {
             const errorMsg = ack && ack.error ? ack.error : '{{ _('Message failed to send. Please try again.') }}';
-            alert(errorMsg);
+            showNotification(errorMsg, 'error');
             return;
         }
         input.value = '';

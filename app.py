@@ -33,6 +33,7 @@ app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'F
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit for CSRF tokens
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Disable CSRF by default, enable per-route
 
 # Babel configuration for i18n
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
@@ -58,7 +59,7 @@ if admin_password == 'admin123':
     print("="*60 + "\n")
 app.config['ADMIN_PASSWORD'] = admin_password
 
-# Configure CORS for SocketIO
+# Configure CORS for SocketIO  
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*')
 if allowed_origins == '*':
     print("\n" + "="*60)
@@ -66,9 +67,11 @@ if allowed_origins == '*':
     print("Set ALLOWED_ORIGINS for production.")
     print("="*60 + "\n")
 
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading', engineio_logger=False, logger=False)
 
 # Initialize CSRF protection
+# With WTF_CSRF_CHECK_DEFAULT=False, CSRF is disabled by default
+# Enable it selectively with @csrf.protect() decorator where needed
 csrf = CSRFProtect(app)
 
 # Initialize rate limiter

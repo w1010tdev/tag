@@ -27,27 +27,90 @@
 </div>
 
 <script>
-const socket = io();
+// Diagnostic: Check if socket.io is available
+if (typeof io === 'undefined') {
+    document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+}
+
+let socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
 
 let roomJoined = false;
+let isSocketConnected = false;
 
-// Track page for online status
-socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
-
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
+// Show initial connecting status
+if (typeof updateSocketStatus === 'function') {
+    updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+} else {
+    // Fallback if function not defined
+    const simpleStatus = document.getElementById('simple-socket-status');
+    if (simpleStatus) {
+        simpleStatus.style.display = 'inline-block';
+        simpleStatus.textContent = '⏳ {{ _('Connecting...') }}';
     }
+}
+
+// Socket connection event handlers
+socket.on('connect', function() {
+    isSocketConnected = true;
+    updateSocketStatus('connected', '{{ _('Connected') }}');
+    
+    // Track page for online status
+    socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
+    
+    // Join clipboard room with acknowledgment
+    socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        } else {
+            showNotification('{{ _('Failed to join clipboard. Please refresh the page.') }}', 'error');
+        }
+    });
+    
+    // Get partner status after joining room
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
 });
+
+socket.on('connect_error', function(error) {
+    isSocketConnected = false;
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    handleSocketError(error, 'clipboard connect');
+});
+
+socket.on('disconnect', function(reason) {
+    isSocketConnected = false;
+    roomJoined = false;
+    updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
+    showNotification('{{ _('Connection lost. Changes may not sync until reconnected.') }}', 'warning', 3000);
+});
+
+socket.on('reconnect', function(attemptNumber) {
+    updateSocketStatus('connected', '{{ _('Reconnected') }}');
+    showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
+});
+
+socket.on('reconnect_attempt', function(attemptNumber) {
+    updateSocketStatus('connecting', '{{ _('Reconnecting...') }} (' + attemptNumber + ')');
+});
+
+socket.on('reconnect_error', function(error) {
+    handleSocketError(error, 'clipboard reconnect');
+});
+
+socket.on('reconnect_failed', function() {
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    showNotification('{{ _('Unable to reconnect. Please refresh the page.') }}', 'error', 0);
+});
+
+// Track page for online status (initial)
+// Moved to connect event handler to ensure socket is connected
+
+// Get partner status (will be called after connection is established)
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -62,21 +125,10 @@ function updatePartnerStatus(status) {
     }
 }
 
-// Join clipboard room with acknowledgment
-socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
-    if (ack) {
-        roomJoined = true;
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
     }
-});
-
-// Re-join on reconnect
-socket.on('connect', function() {
-    socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
-    socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
-        if (ack) {
-            roomJoined = true;
-        }
-    });
 });
 
 // Load existing content
@@ -103,6 +155,10 @@ myClipboard.addEventListener('input', function(e) {
     clearTimeout(timeout);
     lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
+        if (!isSocketConnected) {
+            showNotification('{{ _('Not connected. Changes will sync when connection is restored.') }}', 'warning', 3000);
+            return;
+        }
         if (roomJoined) {
             socket.emit('clipboard_update', {
                 connection_id: connectionId,

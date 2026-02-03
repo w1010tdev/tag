@@ -75,11 +75,13 @@
 </div>
 
 <script>
-const socket = io();
-const connectionId = {{ connection.id }};
+// Global variables - declared outside DOMContentLoaded so functions can access them
+let socket;
+let connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
+const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
 
 let isDrawing = false;
 let isDrawer = false;
@@ -87,41 +89,107 @@ let canvas, ctx, guessCanvas, guessCtx;
 let currentGuessesLeft = 3;
 let roomJoined = false;
 let currentSession = null;
+let isSocketConnected = false;
 
-// Track page for online status
-socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
+// Initialize socket after DOM loads to ensure socket.io library is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if socket.io is available
+    if (typeof io === 'undefined') {
+        document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+        return;
+    }
+    
+    socket = io();
+
+// Show initial connecting status
+if (typeof updateSocketStatus === 'function') {
+    updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+} else {
+    // Fallback if function not defined
+    const simpleStatus = document.getElementById('simple-socket-status');
+    if (simpleStatus) {
+        simpleStatus.style.display = 'inline-block';
+        simpleStatus.textContent = '⏳ {{ _('Connecting...') }}';
+    }
+}
+
+// Socket connection event handlers
+socket.on('connect', function() {
+    isSocketConnected = true;
+    updateSocketStatus('connected', '{{ _('Connected') }}');
+    
+    // Track page for online status
+    socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
+    
+    // Join drawing room
+    joinDrawingRoom();
+    
+    // Get partner status after joining
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
+});
+
+socket.on('connect_error', function(error) {
+    isSocketConnected = false;
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    handleSocketError(error, 'drawing connect');
+    document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Connection error. Please check your internet and refresh.') }}</p>';
+});
+
+socket.on('disconnect', function(reason) {
+    isSocketConnected = false;
+    roomJoined = false;
+    updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
+    showNotification('{{ _('Connection lost. Attempting to reconnect...') }}', 'warning', 3000);
+    document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Disconnected. Reconnecting...') }}</p>';
+});
+
+socket.on('reconnect', function(attemptNumber) {
+    updateSocketStatus('connected', '{{ _('Reconnected') }}');
+    showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
+});
+
+socket.on('reconnect_attempt', function(attemptNumber) {
+    updateSocketStatus('connecting', '{{ _('Reconnecting...') }} (' + attemptNumber + ')');
+});
+
+socket.on('reconnect_error', function(error) {
+    handleSocketError(error, 'drawing reconnect');
+});
+
+socket.on('reconnect_failed', function() {
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    showNotification('{{ _('Unable to reconnect. Please refresh the page.') }}', 'error', 0);
+});
+
+// Track page for online status (initial)
+// Moved to connect event handler to ensure socket is connected
 
 // Join drawing room with acknowledgment
 function joinDrawingRoom() {
+    if (!isSocketConnected) {
+        document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Not connected. Please wait...') }}</p>';
+        return;
+    }
+    
     socket.emit('join_drawing', { connection_id: connectionId }, function(response) {
         if (response && response.success) {
             roomJoined = true;
             currentSession = response.session;
             handleSessionState(response.session);
         } else {
-            document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Failed to join game. Please refresh the page.') }}</p>';
+            const errorMsg = response && response.error ? response.error : '{{ _('Failed to join game. Please refresh the page.') }}';
+            document.getElementById('game-status').innerHTML = '<p class="error">' + errorMsg + '</p>';
+            showNotification(errorMsg, 'error');
         }
     });
 }
 
-joinDrawingRoom();
+// joinDrawingRoom() will be called on connect event
+// Removed duplicate call here to avoid errors on page load
 
-// Re-join on reconnect
-socket.on('connect', function() {
-    socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
-    joinDrawingRoom();
-});
-
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
-    }
-});
+// Get partner status (will be called after connection is established)
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -135,6 +203,12 @@ function updatePartnerStatus(status) {
         statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> ' + otherUsername + ' {{ _("is offline") }}</span>';
     }
 }
+
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
+    }
+});
 
 function handleSessionState(session) {
     if (!session) {
@@ -209,30 +283,45 @@ function showDrawingSetup() {
     document.getElementById('drawing-setup').style.display = 'block';
     document.getElementById('answer-input').focus();
 }
+window.showDrawingSetup = showDrawingSetup; // Make available globally for HTML onclick
 
 function cancelSetup() {
     showStartScreen();
 }
+window.cancelSetup = cancelSetup; // Make available globally for HTML onclick
 
 function startDrawing() {
     const answer = document.getElementById('answer-input').value.trim();
     if (!answer) {
-        alert('{{ _('Please enter a word!') }}');
+        showNotification('{{ _('Please enter a word!') }}', 'warning');
+        return;
+    }
+    
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
         return;
     }
     
     if (!roomJoined) {
-        alert('{{ _('Connecting... Please try again in a moment.') }}');
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
         return;
     }
+    
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+        // Could add UI reset here if needed in future
+    }, SOCKET_ACK_TIMEOUT);
     
     socket.emit('drawing_start', {
         connection_id: connectionId,
         answer: answer
     }, function(response) {
+        clearTimeout(timeoutId);
+        
         if (!response || !response.success) {
             const errorMsg = response && response.error ? response.error : '{{ _('Unable to start drawing. Please try again.') }}';
-            alert(errorMsg);
+            showNotification(errorMsg, 'error');
             return;
         }
         document.getElementById('answer-input').value = '';
@@ -240,6 +329,7 @@ function startDrawing() {
         showDrawingArea();
     });
 }
+window.startDrawing = startDrawing; // Make available globally for HTML onclick
 
 function showDrawingArea() {
     hideAllScreens();
@@ -410,11 +500,22 @@ function clearCanvas() {
         drawing: { type: 'clear' }
     });
 }
+window.clearCanvas = clearCanvas; // Make available globally for HTML onclick
 
 function submitGuess() {
     const guessInput = document.getElementById('guess-input');
     const guess = guessInput.value.trim();
     if (!guess) return;
+    
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
+        return;
+    }
+    
+    if (!roomJoined) {
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
+        return;
+    }
     
     socket.emit('drawing_guess', {
         connection_id: connectionId,
@@ -423,6 +524,7 @@ function submitGuess() {
     
     guessInput.value = '';
 }
+window.submitGuess = submitGuess; // Make available globally for HTML onclick
 
 // Allow enter key to submit guess
 const guessInputEl = document.getElementById('guess-input');
@@ -448,6 +550,7 @@ function startNewSession() {
     // Reload to create a new session
     location.reload();
 }
+window.startNewSession = startNewSession; // Make available globally for HTML onclick
 
 // Socket events
 socket.on('session_joined', function(data) {
@@ -514,11 +617,11 @@ socket.on('guess_result', function(data) {
         // Show session complete screen
         showSessionComplete(data);
     } else if (data.correct) {
-        alert('{{ _('Correct! The answer was:') }} ' + data.answer);
+        showNotification('{{ _('Correct! The answer was:') }} ' + data.answer, 'success', 4000);
         showStartScreen();
         document.getElementById('game-status').innerHTML = '<p><i class="fas fa-check-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else if (data.game_over) {
-        alert('{{ _('Game over! The answer was:') }} ' + data.answer);
+        showNotification('{{ _('Game over! The answer was:') }} ' + data.answer, 'warning', 4000);
         showStartScreen();
         document.getElementById('game-status').innerHTML = '<p><i class="fas fa-times-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else {
@@ -529,10 +632,24 @@ socket.on('guess_result', function(data) {
 });
 
 socket.on('session_ended', function(data) {
-    alert('{{ _('Session ended:') }} ' + data.reason);
-    location.reload();
+    showNotification('{{ _('Session ended:') }} ' + data.reason, 'warning', 8000);
+    // Give user time to see the message before reloading
+    setTimeout(() => {
+        if (confirm('{{ _('Session ended. Click OK to reload the page.') }}')) {
+            location.reload();
+        }
+    }, 2000);
 });
 
+// Notify when leaving the page
+window.addEventListener('beforeunload', function() {
+    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
+        socket.emit('end_drawing_session', { connection_id: connectionId });
+    }
+});
+}); // Close DOMContentLoaded
+
+// Function definitions - outside DOMContentLoaded so they're available for HTML onclick handlers
 function showSessionComplete(data) {
     hideAllScreens();
     document.getElementById('session-complete').style.display = 'block';
@@ -543,7 +660,7 @@ function showSessionComplete(data) {
     } else if (data.user2_score > data.user1_score) {
         winner = otherUsername + ' {{ _('wins!') }}';
     } else {
-        winner = '{{ _("It\'s a tie!") }}';
+        winner = '{{ _("Tie game!") }}';
     }
     
     document.getElementById('final-scores').innerHTML = 
@@ -555,7 +672,7 @@ function showSessionComplete(data) {
 
 // Notify when leaving the page
 window.addEventListener('beforeunload', function() {
-    if (currentSession && currentSession.waiting && currentSession.is_creator) {
+    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
         socket.emit('end_drawing_session', { connection_id: connectionId });
     }
 });
