@@ -646,7 +646,7 @@ function showSessionComplete(data) {
     } else if (data.user2_score > data.user1_score) {
         winner = otherUsername + ' {{ _('wins!') }}';
     } else {
-        winner = "{{ _('It\\'s a tie!') }}";
+        winner = '{{ _("It\'s a tie!") }}';
     }
     
     document.getElementById('final-scores').innerHTML = 
