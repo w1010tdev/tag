@@ -44,13 +44,22 @@
 // Diagnostic: Check if socket.io is available
 if (typeof io === 'undefined') {
     document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+    if (typeof addDebugLog === 'function') {
+        addDebugLog('❌ FATAL: Socket.io未定义 | Socket.io undefined in chat.html', 'error');
+    }
 }
 
+addDebugLog('📄 Chat页面加载 | Chat page loaded', 'info');
+
 const socket = io();
+addDebugLog('🔌 Socket.io初始化 | Socket.io initialized', 'info');
+
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
+
+addDebugLog(`📊 页面信息 | Page Info: connId=${connectionId}, myId=${myUserId}, otherId=${otherUserId}`, 'info');
 
 // Configuration constants
 const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
@@ -62,6 +71,7 @@ let isSocketConnected = false;
 if (typeof updateSocketStatus === 'function') {
     updateSocketStatus('connecting', '{{ _('Connecting...') }}');
 } else {
+    addDebugLog('⚠️ updateSocketStatus函数未找到 | updateSocketStatus function not found', 'warning');
     // Fallback if function not defined
     const simpleStatus = document.getElementById('simple-socket-status');
     if (simpleStatus) {
@@ -72,34 +82,41 @@ if (typeof updateSocketStatus === 'function') {
 
 // Socket connection event handlers
 socket.on('connect', function() {
+    addDebugLog('✅ Socket连接成功 | Socket connected', 'success');
     isSocketConnected = true;
     updateSocketStatus('connected', '{{ _('Connected') }}');
     
     // Track page for online status
     socket.emit('set_page', { page: 'chat', connection_id: connectionId });
+    addDebugLog('📤 发送set_page事件 | Sent set_page event', 'info');
     
     // Join chat room with acknowledgment
     socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
         if (ack) {
             roomJoined = true;
+            addDebugLog('✅ 加入聊天室成功 | Joined chat room successfully', 'success');
         } else {
+            addDebugLog('❌ 加入聊天室失败 | Failed to join chat room', 'error');
             showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
         }
     });
     
     // Get partner status after joining room
     socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        addDebugLog(`📊 获取对方状态 | Got partner status: online=${status.online}`, 'info');
         updatePartnerStatus(status);
     });
 });
 
 socket.on('connect_error', function(error) {
+    addDebugLog(`❌ 连接错误 | Connection error: ${error.message || error}`, 'error');
     isSocketConnected = false;
     updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
     handleSocketError(error, 'chat connect');
 });
 
 socket.on('disconnect', function(reason) {
+    addDebugLog(`⚠️ 断开连接 | Disconnected: ${reason}`, 'warning');
     isSocketConnected = false;
     roomJoined = false;
     updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
@@ -107,6 +124,7 @@ socket.on('disconnect', function(reason) {
 });
 
 socket.on('reconnect', function(attemptNumber) {
+    addDebugLog(`🔄 重新连接成功 | Reconnected after ${attemptNumber} attempts`, 'success');
     updateSocketStatus('connected', '{{ _('Reconnected') }}');
     showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
 });
