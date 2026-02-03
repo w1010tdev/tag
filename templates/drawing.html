@@ -87,30 +87,80 @@ let canvas, ctx, guessCanvas, guessCtx;
 let currentGuessesLeft = 3;
 let roomJoined = false;
 let currentSession = null;
+let isSocketConnected = false;
 
-// Track page for online status
+// Socket connection event handlers
+socket.on('connect', function() {
+    isSocketConnected = true;
+    updateSocketStatus('connected', '{{ _('Connected') }}');
+    
+    // Track page for online status
+    socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
+    
+    // Join drawing room
+    joinDrawingRoom();
+});
+
+socket.on('connect_error', function(error) {
+    isSocketConnected = false;
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    handleSocketError(error, 'drawing connect');
+    document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Connection error. Please check your internet and refresh.') }}</p>';
+});
+
+socket.on('disconnect', function(reason) {
+    isSocketConnected = false;
+    roomJoined = false;
+    updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
+    showNotification('{{ _('Connection lost. Attempting to reconnect...') }}', 'warning', 3000);
+    document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Disconnected. Reconnecting...') }}</p>';
+});
+
+socket.on('reconnect', function(attemptNumber) {
+    updateSocketStatus('connected', '{{ _('Reconnected') }}');
+    showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
+});
+
+socket.on('reconnect_attempt', function(attemptNumber) {
+    updateSocketStatus('connecting', '{{ _('Reconnecting...') }} (' + attemptNumber + ')');
+});
+
+socket.on('reconnect_error', function(error) {
+    handleSocketError(error, 'drawing reconnect');
+});
+
+socket.on('reconnect_failed', function() {
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    showNotification('{{ _('Unable to reconnect. Please refresh the page.') }}', 'error', 0);
+});
+
+// Track page for online status (initial)
 socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
 
 // Join drawing room with acknowledgment
 function joinDrawingRoom() {
+    if (!isSocketConnected) {
+        document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Not connected. Please wait...') }}</p>';
+        return;
+    }
+    
     socket.emit('join_drawing', { connection_id: connectionId }, function(response) {
         if (response && response.success) {
             roomJoined = true;
             currentSession = response.session;
             handleSessionState(response.session);
         } else {
-            document.getElementById('game-status').innerHTML = '<p class="error">{{ _('Failed to join game. Please refresh the page.') }}</p>';
+            const errorMsg = response && response.error ? response.error : '{{ _('Failed to join game. Please refresh the page.') }}';
+            document.getElementById('game-status').innerHTML = '<p class="error">' + errorMsg + '</p>';
+            showNotification(errorMsg, 'error');
         }
     });
 }
 
 joinDrawingRoom();
 
-// Re-join on reconnect
-socket.on('connect', function() {
-    socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
-    joinDrawingRoom();
-});
+// Re-join on reconnect (handled in socket.on('connect') above)
+// Removed duplicate code
 
 // Get partner status
 socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
@@ -217,22 +267,34 @@ function cancelSetup() {
 function startDrawing() {
     const answer = document.getElementById('answer-input').value.trim();
     if (!answer) {
-        alert('{{ _('Please enter a word!') }}');
+        showNotification('{{ _('Please enter a word!') }}', 'warning');
+        return;
+    }
+    
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
         return;
     }
     
     if (!roomJoined) {
-        alert('{{ _('Connecting... Please try again in a moment.') }}');
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
         return;
     }
+    
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+    }, 10000); // 10 second timeout
     
     socket.emit('drawing_start', {
         connection_id: connectionId,
         answer: answer
     }, function(response) {
+        clearTimeout(timeoutId);
+        
         if (!response || !response.success) {
             const errorMsg = response && response.error ? response.error : '{{ _('Unable to start drawing. Please try again.') }}';
-            alert(errorMsg);
+            showNotification(errorMsg, 'error');
             return;
         }
         document.getElementById('answer-input').value = '';
@@ -416,6 +478,16 @@ function submitGuess() {
     const guess = guessInput.value.trim();
     if (!guess) return;
     
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
+        return;
+    }
+    
+    if (!roomJoined) {
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
+        return;
+    }
+    
     socket.emit('drawing_guess', {
         connection_id: connectionId,
         guess: guess
@@ -514,11 +586,11 @@ socket.on('guess_result', function(data) {
         // Show session complete screen
         showSessionComplete(data);
     } else if (data.correct) {
-        alert('{{ _('Correct! The answer was:') }} ' + data.answer);
+        showNotification('{{ _('Correct! The answer was:') }} ' + data.answer, 'success', 4000);
         showStartScreen();
         document.getElementById('game-status').innerHTML = '<p><i class="fas fa-check-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else if (data.game_over) {
-        alert('{{ _('Game over! The answer was:') }} ' + data.answer);
+        showNotification('{{ _('Game over! The answer was:') }} ' + data.answer, 'warning', 4000);
         showStartScreen();
         document.getElementById('game-status').innerHTML = '<p><i class="fas fa-times-circle"></i> {{ _('Round complete! Start the next round.') }}</p>';
     } else {
@@ -529,8 +601,8 @@ socket.on('guess_result', function(data) {
 });
 
 socket.on('session_ended', function(data) {
-    alert('{{ _('Session ended:') }} ' + data.reason);
-    location.reload();
+    showNotification('{{ _('Session ended:') }} ' + data.reason, 'warning', 5000);
+    setTimeout(() => location.reload(), 2000);
 });
 
 function showSessionComplete(data) {

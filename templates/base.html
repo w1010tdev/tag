@@ -30,6 +30,14 @@
         </div>
     </nav>
     
+    <!-- Error notification container -->
+    <div id="error-notification" class="error-notification" style="display: none;"></div>
+    
+    <!-- Socket status indicator -->
+    <div id="socket-status" class="socket-status" style="display: none;">
+        <i class="fas fa-circle-notch fa-spin"></i> {{ _('Connecting...') }}
+    </div>
+    
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
@@ -46,6 +54,83 @@
     </footer>
     
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Global error notification system
+        function showNotification(message, type = 'error', duration = 5000) {
+            const notificationEl = document.getElementById('error-notification');
+            if (!notificationEl) return;
+            
+            // Clear any existing content
+            notificationEl.innerHTML = '';
+            notificationEl.className = 'error-notification ' + type;
+            
+            // Create notification content
+            const content = document.createElement('div');
+            content.className = 'error-notification-content';
+            
+            const icon = document.createElement('i');
+            icon.className = 'error-notification-icon fas ' + 
+                (type === 'error' ? 'fa-exclamation-circle' : 
+                 type === 'success' ? 'fa-check-circle' : 
+                 'fa-exclamation-triangle');
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = 'error-notification-message';
+            messageEl.textContent = message;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'error-notification-close';
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.onclick = () => hideNotification();
+            
+            content.appendChild(icon);
+            content.appendChild(messageEl);
+            content.appendChild(closeBtn);
+            notificationEl.appendChild(content);
+            notificationEl.style.display = 'block';
+            
+            // Auto-hide after duration
+            if (duration > 0) {
+                setTimeout(() => hideNotification(), duration);
+            }
+        }
+        
+        function hideNotification() {
+            const notificationEl = document.getElementById('error-notification');
+            if (notificationEl) {
+                notificationEl.style.display = 'none';
+            }
+        }
+        
+        // Socket status indicator
+        function updateSocketStatus(status, message) {
+            const statusEl = document.getElementById('socket-status');
+            if (!statusEl) return;
+            
+            statusEl.className = 'socket-status ' + status;
+            
+            if (status === 'connecting') {
+                statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + message;
+                statusEl.style.display = 'block';
+            } else if (status === 'connected') {
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+                statusEl.style.display = 'block';
+                // Hide after 2 seconds
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 2000);
+            } else if (status === 'disconnected') {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
+                statusEl.style.display = 'block';
+            }
+        }
+        
+        // Global socket error handler wrapper
+        function handleSocketError(error, context) {
+            console.error('Socket error in ' + context + ':', error);
+            showNotification('{{ _('Connection error. Please check your internet connection and try again.') }}', 'error');
+        }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -48,8 +48,58 @@ const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
 
 let roomJoined = false;
+let isSocketConnected = false;
 
-// Track page for online status
+// Socket connection event handlers
+socket.on('connect', function() {
+    isSocketConnected = true;
+    updateSocketStatus('connected', '{{ _('Connected') }}');
+    
+    // Track page for online status
+    socket.emit('set_page', { page: 'chat', connection_id: connectionId });
+    
+    // Join chat room with acknowledgment
+    socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
+        if (ack) {
+            roomJoined = true;
+        } else {
+            showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
+        }
+    });
+});
+
+socket.on('connect_error', function(error) {
+    isSocketConnected = false;
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    handleSocketError(error, 'chat connect');
+});
+
+socket.on('disconnect', function(reason) {
+    isSocketConnected = false;
+    roomJoined = false;
+    updateSocketStatus('disconnected', '{{ _('Disconnected') }}');
+    showNotification('{{ _('Connection lost. Attempting to reconnect...') }}', 'warning', 3000);
+});
+
+socket.on('reconnect', function(attemptNumber) {
+    updateSocketStatus('connected', '{{ _('Reconnected') }}');
+    showNotification('{{ _('Reconnected successfully!') }}', 'success', 2000);
+});
+
+socket.on('reconnect_attempt', function(attemptNumber) {
+    updateSocketStatus('connecting', '{{ _('Reconnecting...') }} (' + attemptNumber + ')');
+});
+
+socket.on('reconnect_error', function(error) {
+    handleSocketError(error, 'chat reconnect');
+});
+
+socket.on('reconnect_failed', function() {
+    updateSocketStatus('disconnected', '{{ _('Connection failed') }}');
+    showNotification('{{ _('Unable to reconnect. Please refresh the page.') }}', 'error', 0);
+});
+
+// Track page for online status (initial)
 socket.emit('set_page', { page: 'chat', connection_id: connectionId });
 
 // Get partner status
@@ -80,18 +130,13 @@ function updatePartnerStatus(status) {
 socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
     if (ack) {
         roomJoined = true;
+    } else {
+        showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
     }
 });
 
-// Re-join on reconnect
-socket.on('connect', function() {
-    socket.emit('set_page', { page: 'chat', connection_id: connectionId });
-    socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
-        if (ack) {
-            roomJoined = true;
-        }
-    });
-});
+// Re-join on reconnect (handled in socket.on('connect') above)
+// Removed duplicate code
 
 // Send message function
 function sendMessage() {
@@ -100,8 +145,13 @@ function sendMessage() {
     
     if (!message) return;
     
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait for connection to be established.') }}', 'error');
+        return;
+    }
+    
     if (!roomJoined) {
-        alert('{{ _('Connecting... Please try again in a moment.') }}');
+        showNotification('{{ _('Connecting... Please try again in a moment.') }}', 'warning');
         return;
     }
     
@@ -109,14 +159,22 @@ function sendMessage() {
     const sendBtn = document.getElementById('send-btn');
     sendBtn.disabled = true;
     
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        sendBtn.disabled = false;
+        showNotification('{{ _('Message send timeout. Please try again.') }}', 'error');
+    }, 10000); // 10 second timeout
+    
     socket.emit('send_message', {
         connection_id: connectionId,
         message: message
     }, function(ack) {
+        clearTimeout(timeoutId);
         sendBtn.disabled = false;
+        
         if (!ack || !ack.success) {
             const errorMsg = ack && ack.error ? ack.error : '{{ _('Message failed to send. Please try again.') }}';
-            alert(errorMsg);
+            showNotification(errorMsg, 'error');
             return;
         }
         input.value = '';

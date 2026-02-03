@@ -1138,3 +1138,140 @@ body {
         flex-direction: column;
     }
 }
+
+/* Error notification styles */
+.error-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    max-width: 400px;
+    background-color: #FEE2E2;
+    border: 2px solid #DC2626;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.error-notification.success {
+    background-color: #D1FAE5;
+    border-color: #10B981;
+}
+
+.error-notification.warning {
+    background-color: #FEF3C7;
+    border-color: #F59E0B;
+}
+
+.error-notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.error-notification-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.error-notification.error .error-notification-icon {
+    color: #DC2626;
+}
+
+.error-notification.success .error-notification-icon {
+    color: #10B981;
+}
+
+.error-notification.warning .error-notification-icon {
+    color: #F59E0B;
+}
+
+.error-notification-message {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #1F2937;
+}
+
+.error-notification-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: #6B7280;
+    padding: 0;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.error-notification-close:hover {
+    color: #1F2937;
+}
+
+/* Socket status indicator */
+.socket-status {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #FEF3C7;
+    border: 2px solid #F59E0B;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #92400E;
+    z-index: 9999;
+    animation: slideInDown 0.3s ease-out;
+}
+
+.socket-status.connected {
+    background-color: #D1FAE5;
+    border-color: #10B981;
+    color: #065F46;
+}
+
+.socket-status.disconnected {
+    background-color: #FEE2E2;
+    border-color: #DC2626;
+    color: #991B1B;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile responsive for notifications */
+@media (max-width: 768px) {
+    .error-notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        top: 70px;
+    }
+    
+    .socket-status {
+        top: 70px;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
