@@ -2,7 +2,7 @@
 <html lang="{{ get_locale() }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}{{ _('Social Connect') }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -123,7 +123,11 @@
     <nav class="navbar">
         <div class="container">
             <a href="/" class="logo"><i class="fas fa-comments"></i> {{ _('Social Connect') }}</a>
-            <div class="nav-links">
+            <button class="hamburger" id="hamburger-menu" onclick="toggleMobileMenu()" 
+                    aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="nav-links">
                 {% if current_user.is_authenticated %}
                     <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> {{ _('Dashboard') }}</a>
                     <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> {{ _('Logout') }}</a>
@@ -141,6 +145,63 @@
             </div>
         </div>
     </nav>
+    
+    <script>
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('nav-links');
+            const hamburger = document.getElementById('hamburger-menu');
+            const isActive = navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+            
+            // Update aria-expanded attribute
+            hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+        }
+        
+        // Close menu when clicking a link and when clicking outside the menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const navigationLinks = document.querySelectorAll('.nav-links a');
+            
+            // Close when a navigation link is clicked
+            navigationLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    const navLinksEl = document.getElementById('nav-links');
+                    const hamburger = document.getElementById('hamburger-menu');
+                    if (navLinksEl && hamburger && navLinksEl.classList.contains('active')) {
+                        navLinksEl.classList.remove('active');
+                        hamburger.classList.remove('active');
+                        hamburger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+
+            // Close when clicking/tapping outside the nav menu and hamburger
+            document.addEventListener('click', function(event) {
+                const navLinksEl = document.getElementById('nav-links');
+                const hamburger = document.getElementById('hamburger-menu');
+                
+                if (!navLinksEl || !hamburger) {
+                    return;
+                }
+                
+                // Only act if the menu is currently open
+                if (!navLinksEl.classList.contains('active')) {
+                    return;
+                }
+                
+                const target = event.target;
+                
+                // Ignore clicks inside the nav menu or on the hamburger toggle
+                if (navLinksEl.contains(target) || hamburger.contains(target)) {
+                    return;
+                }
+                
+                // Click was outside: close the menu
+                navLinksEl.classList.remove('active');
+                hamburger.classList.remove('active');
+                hamburger.setAttribute('aria-expanded', 'false');
+            });
+        });
+    </script>
     
     <!-- Error notification container -->
     <div id="error-notification" class="error-notification" style="display: none;"></div>

@@ -17,6 +17,9 @@
             <div class="score-board" id="score-board" style="display: none;">
                 <span id="round-info"></span>
                 <span id="score-info"></span>
+                <button onclick="endGameEarly()" class="btn btn-sm btn-warning" id="end-game-btn" style="margin-left: 1rem;">
+                    <i class="fas fa-stop"></i> {{ _('End Game') }}
+                </button>
             </div>
         </div>
         
@@ -547,10 +550,66 @@ if (answerInputEl) {
 }
 
 function startNewSession() {
-    // Reload to create a new session
-    location.reload();
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait...') }}', 'error');
+        return;
+    }
+    
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+    }, SOCKET_ACK_TIMEOUT);
+    
+    // Create a new session
+    socket.emit('create_new_game_session', { connection_id: connectionId }, function(response) {
+        clearTimeout(timeoutId);
+        
+        if (response && response.success) {
+            location.reload();
+        } else {
+            showNotification('{{ _('Failed to create new game. Please try again.') }}', 'error');
+        }
+    });
 }
 window.startNewSession = startNewSession; // Make available globally for HTML onclick
+
+function endGameEarly() {
+    if (!currentSession || !currentSession.id) {
+        showNotification('{{ _('No active game session.') }}', 'warning');
+        return;
+    }
+    
+    if (currentSession.waiting) {
+        showNotification('{{ _('Cannot end game while waiting for partner.') }}', 'warning');
+        return;
+    }
+    
+    if (confirm('{{ _('Are you sure you want to end the current game? The current scores will be final.') }}')) {
+        if (!isSocketConnected) {
+            showNotification('{{ _('Not connected. Please wait...') }}', 'error');
+            return;
+        }
+        
+        // Add timeout for acknowledgment
+        let timeoutId = setTimeout(() => {
+            showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+        }, SOCKET_ACK_TIMEOUT);
+        
+        socket.emit('end_game_early', { 
+            connection_id: connectionId,
+            session_id: currentSession.id 
+        }, function(response) {
+            clearTimeout(timeoutId);
+            
+            if (!response || !response.success) {
+                showNotification('{{ _('Failed to end game. Please try again.') }}', 'error');
+            }
+            // Success: server will broadcast 'game_ended_early' to all players,
+            // and the corresponding event handler will show the session complete UI.
+        });
+    }
+}
+window.endGameEarly = endGameEarly; // Make available globally for HTML onclick
 
 // Socket events
 socket.on('session_joined', function(data) {
@@ -641,6 +700,15 @@ socket.on('session_ended', function(data) {
     }, 2000);
 });
 
+socket.on('game_ended_early', function(data) {
+    if (currentSession) {
+        currentSession.user1_score = data.user1_score;
+        currentSession.user2_score = data.user2_score;
+    }
+    showSessionComplete(data);
+    showNotification('{{ _('Game ended early.') }}', 'info', 3000);
+});
+
 // Notify when leaving the page
 window.addEventListener('beforeunload', function() {
     if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
@@ -653,6 +721,12 @@ window.addEventListener('beforeunload', function() {
 function showSessionComplete(data) {
     hideAllScreens();
     document.getElementById('session-complete').style.display = 'block';
+    
+    // Hide the End Game button when session is complete
+    const endGameBtn = document.getElementById('end-game-btn');
+    if (endGameBtn) {
+        endGameBtn.style.display = 'none';
+    }
     
     let winner = '';
     if (data.user1_score > data.user2_score) {
@@ -669,12 +743,5 @@ function showSessionComplete(data) {
     
     document.getElementById('game-status').innerHTML = '<p><i class="fas fa-trophy"></i> {{ _('Game Complete!') }}</p>';
 }
-
-// Notify when leaving the page
-window.addEventListener('beforeunload', function() {
-    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
-        socket.emit('end_drawing_session', { connection_id: connectionId });
-    }
-});
 </script>
 {% endblock %}

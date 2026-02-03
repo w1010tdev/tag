@@ -608,6 +608,48 @@ def handle_end_session(data):
             'reason': 'User left'
         }, room=f'drawing_{connection_id}')
 
+@socketio.on('end_game_early')
+def handle_end_game_early(data):
+    """End the current game session early with current scores."""
+    connection_id = data.get('connection_id')
+    session_id = data.get('session_id')
+    
+    if not validate_connection_access(connection_id, current_user.id):
+        return {'success': False, 'error': 'Access denied'}
+    
+    session = DrawingSession.get_by_id(session_id)
+    if not session or session.connection_id != connection_id:
+        return {'success': False, 'error': 'Invalid session'}
+    
+    # Ensure the session is still active
+    if not session.is_active:
+        return {'success': False, 'error': 'Session is not active'}
+    
+    # End the session
+    session.end_session()
+    
+    # Notify both players
+    emit('game_ended_early', {
+        'session_id': session_id,
+        'user1_score': session.user1_score,
+        'user2_score': session.user2_score
+    }, room=f'drawing_{connection_id}')
+    
+    return {'success': True}
+
+@socketio.on('create_new_game_session')
+def handle_create_new_game_session(data):
+    """Create a new game session."""
+    connection_id = data.get('connection_id')
+    
+    if not validate_connection_access(connection_id, current_user.id):
+        return {'success': False, 'error': 'Access denied'}
+    
+    # Create new session (this will deactivate old ones)
+    session_id = DrawingSession.create(connection_id, current_user.id, DEFAULT_ROUNDS_PER_SESSION)
+    
+    return {'success': True, 'session_id': session_id}
+
 # Chat WebSocket events
 @socketio.on('join_chat')
 def handle_join_chat(data):
