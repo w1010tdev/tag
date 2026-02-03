@@ -696,6 +696,7 @@ body {
         align-items: flex-start;
         gap: 1rem;
         overflow-y: auto;
+        z-index: 100;
     }
     
     .nav-links.active {

@@ -621,6 +621,10 @@ def handle_end_game_early(data):
     if not session or session.connection_id != connection_id:
         return {'success': False, 'error': 'Invalid session'}
     
+    # Ensure the session is still active
+    if not session.is_active:
+        return {'success': False, 'error': 'Session is not active'}
+    
     # End the session
     session.end_session()
     

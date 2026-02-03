@@ -555,8 +555,15 @@ function startNewSession() {
         return;
     }
     
+    // Add timeout for acknowledgment
+    let timeoutId = setTimeout(() => {
+        showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+    }, SOCKET_ACK_TIMEOUT);
+    
     // Create a new session
     socket.emit('create_new_game_session', { connection_id: connectionId }, function(response) {
+        clearTimeout(timeoutId);
+        
         if (response && response.success) {
             location.reload();
         } else {
@@ -572,16 +579,28 @@ function endGameEarly() {
         return;
     }
     
+    if (currentSession.waiting) {
+        showNotification('{{ _('Cannot end game while waiting for partner.') }}', 'warning');
+        return;
+    }
+    
     if (confirm('{{ _('Are you sure you want to end the current game? The current scores will be final.') }}')) {
         if (!isSocketConnected) {
             showNotification('{{ _('Not connected. Please wait...') }}', 'error');
             return;
         }
         
+        // Add timeout for acknowledgment
+        let timeoutId = setTimeout(() => {
+            showNotification('{{ _('Request timeout. Please try again.') }}', 'error');
+        }, SOCKET_ACK_TIMEOUT);
+        
         socket.emit('end_game_early', { 
             connection_id: connectionId,
             session_id: currentSession.id 
         }, function(response) {
+            clearTimeout(timeoutId);
+            
             if (!response || !response.success) {
                 showNotification('{{ _('Failed to end game. Please try again.') }}', 'error');
             }
@@ -702,6 +721,12 @@ window.addEventListener('beforeunload', function() {
 function showSessionComplete(data) {
     hideAllScreens();
     document.getElementById('session-complete').style.display = 'block';
+    
+    // Hide the End Game button when session is complete
+    const endGameBtn = document.getElementById('end-game-btn');
+    if (endGameBtn) {
+        endGameBtn.style.display = 'none';
+    }
     
     let winner = '';
     if (data.user1_score > data.user2_score) {

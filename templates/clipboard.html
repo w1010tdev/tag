@@ -187,10 +187,9 @@ myClipboard.addEventListener('input', function(e) {
 myClipboard.addEventListener('compositionupdate', function(e) {
     // Sync even during composition (pinyin typing)
     clearTimeout(timeout);
-    const currentValue = e.target.value;
-    lastLocalClipboard = currentValue;
+    lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
-        sendClipboardUpdate(currentValue);
+        sendClipboardUpdate(myClipboard.value); // Use current value to avoid race conditions
     }, 150); // Even faster for composition to show real-time pinyin
 });
 
