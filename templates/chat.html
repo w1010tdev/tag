@@ -41,6 +41,11 @@
 </div>
 
 <script>
+// Diagnostic: Check if socket.io is available
+if (typeof io === 'undefined') {
+    document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+}
+
 const socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
@@ -54,7 +59,16 @@ let roomJoined = false;
 let isSocketConnected = false;
 
 // Show initial connecting status
-updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+if (typeof updateSocketStatus === 'function') {
+    updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+} else {
+    // Fallback if function not defined
+    const simpleStatus = document.getElementById('simple-socket-status');
+    if (simpleStatus) {
+        simpleStatus.style.display = 'inline-block';
+        simpleStatus.textContent = '⏳ {{ _('Connecting...') }}';
+    }
+}
 
 // Socket connection event handlers
 socket.on('connect', function() {

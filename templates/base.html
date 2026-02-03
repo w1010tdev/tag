@@ -55,8 +55,32 @@
         </div>
     </footer>
     
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" onerror="handleSocketLibraryError()"></script>
     <script>
+        // Detect if socket.io library failed to load
+        function handleSocketLibraryError() {
+            const simpleStatus = document.getElementById('simple-socket-status');
+            if (simpleStatus) {
+                simpleStatus.style.display = 'inline-block';
+                simpleStatus.textContent = '⚠️ Socket库加载失败';
+                simpleStatus.style.background = '#FEE2E2';
+                simpleStatus.style.color = '#991B1B';
+                simpleStatus.style.borderColor = '#DC2626';
+            }
+            
+            const statusEl = document.getElementById('socket-status');
+            if (statusEl) {
+                statusEl.innerHTML = 'Socket.io library failed to load. Check network connection.';
+                statusEl.className = 'socket-status disconnected';
+                statusEl.style.display = 'block';
+            }
+        }
+        
+        // Check if socket.io loaded successfully
+        if (typeof io === 'undefined') {
+            handleSocketLibraryError();
+        }
+        
         // Global error notification system
         function showNotification(message, type = 'error', duration = 5000) {
             const notificationEl = document.getElementById('error-notification');
