@@ -329,7 +329,7 @@ memoryToggle.addEventListener('click', () => {
     }
 });
 
-if (memoryList && memoryList.children.length === 1 && memoryPane) {
+if (memoryList && memoryList.querySelector('.memory-card') && memoryPane) {
     memoryPane.classList.add('is-open');
 }
 
@@ -424,14 +424,21 @@ function spawnSticker(emoji) {
     sticker.addEventListener('animationend', () => sticker.remove());
 }
 
-function applyMoodPrefix() {
-    if (!moodPrefix) return;
-    if (!myClipboard.value.startsWith(moodPrefix)) {
-        myClipboard.value = moodPrefix + myClipboard.value.replace(moodPrefix, '');
+function prependMoodPrefix(prefix, shouldSend) {
+    if (!prefix) return;
+    if (!myClipboard.value.startsWith(prefix)) {
+        myClipboard.value = prefix + myClipboard.value;
         lastLocalClipboard = myClipboard.value;
-        sendClipboardUpdate(myClipboard.value);
+        if (shouldSend) {
+            sendClipboardUpdate(myClipboard.value);
+        }
     }
+}
+
+function applyMoodPrefix() {
+    const prefix = moodPrefix;
     moodPrefix = '';
+    prependMoodPrefix(prefix, true);
 }
 
 function clearCanvas(ctx, canvas) {
@@ -660,15 +667,16 @@ myClipboard.addEventListener('input', function(e) {
     
     clearTimeout(timeout);
     if (!drawingIsComposing && moodPrefix) {
-        if (!e.target.value.startsWith(moodPrefix)) {
+        const prefix = moodPrefix;
+        const hasPrefix = e.target.value.startsWith(prefix);
+        moodPrefix = '';
+        prependMoodPrefix(prefix, false);
+        if (!hasPrefix) {
             const selectionStart = e.target.selectionStart;
             const selectionEnd = e.target.selectionEnd;
-            const cleaned = e.target.value.replace(moodPrefix, '');
-            e.target.value = moodPrefix + cleaned;
-            const offset = moodPrefix.length;
+            const offset = prefix.length;
             e.target.setSelectionRange(selectionStart + offset, selectionEnd + offset);
         }
-        moodPrefix = '';
     }
     setRemoteDrawingActive(false);
     clearCanvas(otherDrawingCtx, otherDrawingCanvas);
@@ -735,7 +743,10 @@ setInterval(() => {
     if (!remoteDrawingActive) {
         return;
     }
-    if (!drawingPoints.length && otherDrawingHistory.length && otherDrawingHasContent && !isReplaying && Date.now() - otherLastStroke > 2000) {
+    const idleTooLong = Date.now() - otherLastStroke > 2000;
+    const hasHistory = otherDrawingHistory.length > 0;
+    const noPending = drawingPoints.length === 0;
+    if (noPending && hasHistory && otherDrawingHasContent && !isReplaying && idleTooLong) {
         replayDrawingHistory();
     }
     if (Date.now() - otherLastStroke > 5000) {
