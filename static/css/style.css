@@ -88,6 +88,23 @@ body {
     padding: 2rem 1rem;
 }
 
+/* Mobile-optimized container to prevent scrolling */
+@media (max-width: 768px) {
+    .container {
+        height: auto;
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
+    }
+    
+    /* For chat, clipboard, and drawing - make them fill viewport */
+    .chat-container,
+    .clipboard-container,
+    .game-container {
+        max-height: calc(100vh - 80px);
+        overflow: hidden;
+    }
+}
+
 /* Main Content */
 .main-content {
     min-height: calc(100vh - 80px);
@@ -662,20 +679,61 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Mobile-first: minimize scrolling by hiding less important elements */
+    body {
+        overflow-x: hidden;
+    }
+    
+    /* Hide footer on mobile to save space */
+    .footer {
+        display: none;
+    }
+    
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .page-header {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.25rem;
+        margin: 0;
+    }
+    
+    /* Hide less important elements on mobile */
+    .token-note,
+    .connection-date,
+    .partner-status {
+        display: none;
+    }
+    
+    .dashboard-section h2 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
     .hero h1 {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
     
     .hero .subtitle {
-        font-size: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .hero {
+        padding: 2rem 1rem;
     }
     
     .cta-buttons {
         flex-direction: column;
+        gap: 0.5rem;
     }
     
     .navbar .container {
-        padding: 0 1rem;
+        padding: 0.5rem 1rem;
     }
     
     .hamburger {
@@ -709,10 +767,12 @@ body {
         border-bottom: 1px solid #e2e8f0;
     }
     
+    /* Clipboard optimizations */
     .clipboard-container {
         grid-template-columns: 1fr;
         display: flex;
         flex-direction: column;
+        gap: 0.5rem;
     }
     
     /* Ensure user's clipboard is at the bottom on mobile */
@@ -724,22 +784,125 @@ body {
         order: 1;
     }
     
+    .clipboard-pane {
+        padding: 0.75rem;
+    }
+    
+    .clipboard-pane h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
     .clipboard-textarea {
-        min-height: 220px;
+        min-height: 150px;
+        font-size: 0.9rem;
+    }
+    
+    /* Dashboard optimizations */
+    .token-card {
+        padding: 0.75rem;
+    }
+    
+    .token-display {
+        gap: 0.5rem;
+    }
+    
+    .token-display input {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+    
+    .connections-grid {
+        gap: 0.75rem;
+    }
+    
+    .connection-card {
+        padding: 0.75rem;
+    }
+    
+    .connection-card h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .connection-actions {
+        gap: 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Chat optimizations - maximize message area */
+    .chat-container {
+        height: calc(100vh - 120px);
+        margin-top: 0;
+    }
+    
+    .chat-messages {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+    
+    .message-sender {
+        font-size: 0.7rem;
+    }
+    
+    .message-time {
+        font-size: 0.65rem;
+    }
+    
+    .chat-input-container {
+        padding: 0.5rem;
+    }
+    
+    .chat-input {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+    
+    /* Drawing game optimizations */
+    .game-container {
+        padding: 0.5rem;
+    }
+    
+    .score-board {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+    
+    .game-status {
+        font-size: 0.85rem;
+        padding: 0.5rem;
     }
     
     #drawing-canvas, #guess-canvas {
         width: 100%;
         height: auto;
+        max-height: 250px;
     }
     
+    .drawing-controls,
+    .guess-controls {
+        padding: 0.5rem;
+        gap: 0.25rem;
+    }
+    
+    .drawing-controls label,
+    .drawing-controls input,
+    .drawing-controls button {
+        font-size: 0.8rem;
+    }
+    
+    /* Admin table */
     .admin-table {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
     }
     
     .admin-table th,
     .admin-table td {
-        padding: 0.5rem;
+        padding: 0.4rem;
     }
 }
 
