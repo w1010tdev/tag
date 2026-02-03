@@ -75,7 +75,21 @@
 </div>
 
 <script>
+// Global variables - declared outside DOMContentLoaded so functions can access them
 let socket;
+let connectionId = {{ connection.id }};
+const myUserId = {{ current_user.id }};
+const otherUserId = {{ other_user.id }};
+const otherUsername = {{ other_user.username | tojson }};
+const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
+
+let isDrawing = false;
+let isDrawer = false;
+let canvas, ctx, guessCanvas, guessCtx;
+let currentGuessesLeft = 3;
+let roomJoined = false;
+let currentSession = null;
+let isSocketConnected = false;
 
 // Initialize socket after DOM loads to ensure socket.io library is available
 document.addEventListener('DOMContentLoaded', function() {
@@ -86,21 +100,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     socket = io();
-const connectionId = {{ connection.id }};
-const myUserId = {{ current_user.id }};
-const otherUserId = {{ other_user.id }};
-const otherUsername = {{ other_user.username | tojson }};
-
-// Configuration constants
-const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
-
-let isDrawing = false;
-let isDrawer = false;
-let canvas, ctx, guessCanvas, guessCtx;
-let currentGuessesLeft = 3;
-let roomJoined = false;
-let currentSession = null;
-let isSocketConnected = false;
 
 // Show initial connecting status
 if (typeof updateSocketStatus === 'function') {
@@ -284,10 +283,12 @@ function showDrawingSetup() {
     document.getElementById('drawing-setup').style.display = 'block';
     document.getElementById('answer-input').focus();
 }
+window.showDrawingSetup = showDrawingSetup; // Make available globally for HTML onclick
 
 function cancelSetup() {
     showStartScreen();
 }
+window.cancelSetup = cancelSetup; // Make available globally for HTML onclick
 
 function startDrawing() {
     const answer = document.getElementById('answer-input').value.trim();
@@ -328,6 +329,7 @@ function startDrawing() {
         showDrawingArea();
     });
 }
+window.startDrawing = startDrawing; // Make available globally for HTML onclick
 
 function showDrawingArea() {
     hideAllScreens();
@@ -498,6 +500,7 @@ function clearCanvas() {
         drawing: { type: 'clear' }
     });
 }
+window.clearCanvas = clearCanvas; // Make available globally for HTML onclick
 
 function submitGuess() {
     const guessInput = document.getElementById('guess-input');
@@ -521,6 +524,7 @@ function submitGuess() {
     
     guessInput.value = '';
 }
+window.submitGuess = submitGuess; // Make available globally for HTML onclick
 
 // Allow enter key to submit guess
 const guessInputEl = document.getElementById('guess-input');
@@ -546,6 +550,7 @@ function startNewSession() {
     // Reload to create a new session
     location.reload();
 }
+window.startNewSession = startNewSession; // Make available globally for HTML onclick
 
 // Socket events
 socket.on('session_joined', function(data) {
@@ -636,6 +641,15 @@ socket.on('session_ended', function(data) {
     }, 2000);
 });
 
+// Notify when leaving the page
+window.addEventListener('beforeunload', function() {
+    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
+        socket.emit('end_drawing_session', { connection_id: connectionId });
+    }
+});
+}); // Close DOMContentLoaded
+
+// Function definitions - outside DOMContentLoaded so they're available for HTML onclick handlers
 function showSessionComplete(data) {
     hideAllScreens();
     document.getElementById('session-complete').style.display = 'block';
@@ -662,6 +676,5 @@ window.addEventListener('beforeunload', function() {
         socket.emit('end_drawing_session', { connection_id: connectionId });
     }
 });
-}); // Close DOMContentLoaded
 </script>
 {% endblock %}
