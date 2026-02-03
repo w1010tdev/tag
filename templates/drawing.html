@@ -99,6 +99,11 @@ socket.on('connect', function() {
     
     // Join drawing room
     joinDrawingRoom();
+    
+    // Get partner status after joining
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
 });
 
 socket.on('connect_error', function(error) {
@@ -135,7 +140,7 @@ socket.on('reconnect_failed', function() {
 });
 
 // Track page for online status (initial)
-socket.emit('set_page', { page: 'drawing', connection_id: connectionId });
+// Moved to connect event handler to ensure socket is connected
 
 // Join drawing room with acknowledgment
 function joinDrawingRoom() {
@@ -157,21 +162,10 @@ function joinDrawingRoom() {
     });
 }
 
-joinDrawingRoom();
+// joinDrawingRoom() will be called on connect event
+// Removed duplicate call here to avoid errors on page load
 
-// Re-join on reconnect (handled in socket.on('connect') above)
-// Removed duplicate code
-
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
-    }
-});
+// Get partner status (will be called after connection is established)
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -185,6 +179,12 @@ function updatePartnerStatus(status) {
         statusEl.innerHTML = '<span class="status-offline"><i class="far fa-circle"></i> ' + otherUsername + ' {{ _("is offline") }}</span>';
     }
 }
+
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
+    }
+});
 
 function handleSessionState(session) {
     if (!session) {

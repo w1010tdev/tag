@@ -52,6 +52,11 @@ socket.on('connect', function() {
             showNotification('{{ _('Failed to join clipboard. Please refresh the page.') }}', 'error');
         }
     });
+    
+    // Get partner status after joining room
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
 });
 
 socket.on('connect_error', function(error) {
@@ -86,18 +91,9 @@ socket.on('reconnect_failed', function() {
 });
 
 // Track page for online status (initial)
-socket.emit('set_page', { page: 'clipboard', connection_id: connectionId });
+// Moved to connect event handler to ensure socket is connected
 
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
-    }
-});
+// Get partner status (will be called after connection is established)
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -112,17 +108,11 @@ function updatePartnerStatus(status) {
     }
 }
 
-// Join clipboard room with acknowledgment
-socket.emit('join_clipboard', { connection_id: connectionId }, function(ack) {
-    if (ack) {
-        roomJoined = true;
-    } else {
-        showNotification('{{ _('Failed to join clipboard. Please refresh the page.') }}', 'error');
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
     }
 });
-
-// Re-join on reconnect (handled in socket.on('connect') above)
-// Removed duplicate code
 
 // Load existing content
 {% if clipboard_data %}

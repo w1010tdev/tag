@@ -66,6 +66,11 @@ socket.on('connect', function() {
             showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
         }
     });
+    
+    // Get partner status after joining room
+    socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
+        updatePartnerStatus(status);
+    });
 });
 
 socket.on('connect_error', function(error) {
@@ -100,18 +105,7 @@ socket.on('reconnect_failed', function() {
 });
 
 // Track page for online status (initial)
-socket.emit('set_page', { page: 'chat', connection_id: connectionId });
-
-// Get partner status
-socket.emit('get_user_status', { connection_id: connectionId }, function(status) {
-    updatePartnerStatus(status);
-});
-
-socket.on('user_status_changed', function(data) {
-    if (data.user_id === otherUserId) {
-        updatePartnerStatus({ online: data.online, page: data.page });
-    }
-});
+// Moved to connect event handler to ensure socket is connected
 
 function updatePartnerStatus(status) {
     const statusEl = document.getElementById('partner-status');
@@ -126,17 +120,12 @@ function updatePartnerStatus(status) {
     }
 }
 
-// Join chat room with acknowledgment
-socket.emit('join_chat', { connection_id: connectionId }, function(ack) {
-    if (ack) {
-        roomJoined = true;
-    } else {
-        showNotification('{{ _('Failed to join chat. Please refresh the page.') }}', 'error');
+// Get partner status after socket connects (handled in connect event)
+socket.on('user_status_changed', function(data) {
+    if (data.user_id === otherUserId) {
+        updatePartnerStatus({ online: data.online, page: data.page });
     }
 });
-
-// Re-join on reconnect (handled in socket.on('connect') above)
-// Removed duplicate code
 
 // Send message function
 function sendMessage() {
