@@ -13,15 +13,15 @@
     </div>
     
     <div class="clipboard-container">
-        <div class="clipboard-pane">
-            <h3><i class="fas fa-user"></i> {{ _('Your Area (%(username)s)', username=current_user.username) }}</h3>
-            <textarea id="my-clipboard" class="clipboard-textarea" 
-                      placeholder="{{ _('Type here... Changes sync in real-time') }}"></textarea>
-        </div>
-        <div class="clipboard-pane">
+        <div class="clipboard-pane other-pane">
             <h3><i class="fas fa-user-friends"></i> {{ _("%(username)s's Area", username=other_user.username) }}</h3>
             <textarea id="other-clipboard" class="clipboard-textarea" 
                       placeholder="{{ _('Waiting for %(username)s to type...', username=other_user.username) }}" readonly></textarea>
+        </div>
+        <div class="clipboard-pane user-pane">
+            <h3><i class="fas fa-user"></i> {{ _('Your Area (%(username)s)', username=current_user.username) }}</h3>
+            <textarea id="my-clipboard" class="clipboard-textarea" 
+                      placeholder="{{ _('Type here... Changes sync in real-time') }}"></textarea>
         </div>
     </div>
 </div>
@@ -149,23 +149,45 @@ function shouldUpdateLocalClipboard(content) {
     return document.activeElement !== myClipboard && content !== lastLocalClipboard;
 }
 
-// Send updates
+// Send updates with shorter delay for faster sync
 let timeout;
+function sendClipboardUpdate(content) {
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Changes will sync when connection is restored.') }}', 'warning', 3000);
+        return;
+    }
+    if (roomJoined) {
+        socket.emit('clipboard_update', {
+            connection_id: connectionId,
+            content: content
+        });
+    }
+}
+
 myClipboard.addEventListener('input', function(e) {
     clearTimeout(timeout);
     lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
-        if (!isSocketConnected) {
-            showNotification('{{ _('Not connected. Changes will sync when connection is restored.') }}', 'warning', 3000);
-            return;
-        }
-        if (roomJoined) {
-            socket.emit('clipboard_update', {
-                connection_id: connectionId,
-                content: e.target.value
-            });
-        }
-    }, 500);
+        sendClipboardUpdate(e.target.value);
+    }, 200); // Reduced from 500ms to 200ms for faster sync
+});
+
+// Add support for composition events (pinyin/IME input)
+myClipboard.addEventListener('compositionupdate', function(e) {
+    // Sync even during composition (pinyin typing)
+    clearTimeout(timeout);
+    const currentValue = e.target.value;
+    lastLocalClipboard = currentValue;
+    timeout = setTimeout(() => {
+        sendClipboardUpdate(currentValue);
+    }, 150); // Even faster for composition to show real-time pinyin
+});
+
+myClipboard.addEventListener('compositionend', function(e) {
+    // Final sync when composition completes
+    clearTimeout(timeout);
+    lastLocalClipboard = e.target.value;
+    sendClipboardUpdate(e.target.value);
 });
 
 // Receive updates

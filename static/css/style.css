@@ -40,6 +40,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+    position: relative;
 }
 
 .logo {
@@ -47,11 +48,27 @@ body {
     font-weight: bold;
     color: var(--primary-color);
     text-decoration: none;
+    z-index: 101;
+}
+
+.hamburger {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    z-index: 101;
+}
+
+.hamburger:hover {
+    color: var(--secondary-color);
 }
 
 .nav-links {
     display: flex;
     gap: 1.5rem;
+    align-items: center;
 }
 
 .nav-links a {
@@ -384,6 +401,16 @@ body {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+.clipboard-pane.user-pane {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.clipboard-pane.other-pane {
+    background: #f3e5f5;
+    border-left: 4px solid #9c27b0;
+}
+
 .clipboard-pane h3 {
     color: var(--primary-color);
     margin-bottom: 1rem;
@@ -398,11 +425,13 @@ body {
     font-size: 1rem;
     font-family: inherit;
     resize: vertical;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .clipboard-textarea:focus {
     outline: none;
     border-color: var(--primary-color);
+    background: white;
 }
 
 /* Drawing Game */
@@ -646,21 +675,56 @@ body {
     }
     
     .navbar .container {
-        flex-direction: column;
-        gap: 1rem;
+        padding: 0 1rem;
+    }
+    
+    .hamburger {
+        display: block;
     }
     
     .nav-links {
-        flex-wrap: wrap;
-        justify-content: center;
+        position: fixed;
+        top: 0;
+        right: -100%;
+        height: 100vh;
+        width: 250px;
+        background: white;
+        flex-direction: column;
+        padding: 5rem 1.5rem 1.5rem;
+        box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1);
+        transition: right 0.3s ease;
+        align-items: flex-start;
+        gap: 1rem;
+        overflow-y: auto;
+    }
+    
+    .nav-links.active {
+        right: 0;
+    }
+    
+    .nav-links a {
+        width: 100%;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
     }
     
     .clipboard-container {
         grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Ensure user's clipboard is at the bottom on mobile */
+    .clipboard-pane.user-pane {
+        order: 2;
+    }
+    
+    .clipboard-pane.other-pane {
+        order: 1;
     }
     
     .clipboard-textarea {
-        min-height: 250px;
+        min-height: 200px;
     }
     
     #drawing-canvas, #guess-canvas {

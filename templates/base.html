@@ -2,10 +2,10 @@
 <html lang="{{ get_locale() }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}{{ _('Social Connect') }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <!-- Eruda mobile debugger -->
     <script src="//fastly.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
@@ -123,7 +123,10 @@
     <nav class="navbar">
         <div class="container">
             <a href="/" class="logo"><i class="fas fa-comments"></i> {{ _('Social Connect') }}</a>
-            <div class="nav-links">
+            <button class="hamburger" id="hamburger-menu" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="nav-links">
                 {% if current_user.is_authenticated %}
                     <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> {{ _('Dashboard') }}</a>
                     <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> {{ _('Logout') }}</a>
@@ -141,6 +144,30 @@
             </div>
         </div>
     </nav>
+    
+    <script>
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('nav-links');
+            const hamburger = document.getElementById('hamburger-menu');
+            navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+        
+        // Close menu when clicking a link
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    const navLinksEl = document.getElementById('nav-links');
+                    const hamburger = document.getElementById('hamburger-menu');
+                    if (navLinksEl.classList.contains('active')) {
+                        navLinksEl.classList.remove('active');
+                        hamburger.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
     
     <!-- Error notification container -->
     <div id="error-notification" class="error-notification" style="display: none;"></div>

@@ -17,6 +17,9 @@
             <div class="score-board" id="score-board" style="display: none;">
                 <span id="round-info"></span>
                 <span id="score-info"></span>
+                <button onclick="endGameEarly()" class="btn btn-sm btn-warning" id="end-game-btn" style="margin-left: 1rem;">
+                    <i class="fas fa-stop"></i> {{ _('End Game') }}
+                </button>
             </div>
         </div>
         
@@ -547,10 +550,51 @@ if (answerInputEl) {
 }
 
 function startNewSession() {
-    // Reload to create a new session
-    location.reload();
+    if (!isSocketConnected) {
+        showNotification('{{ _('Not connected. Please wait...') }}', 'error');
+        return;
+    }
+    
+    // Create a new session
+    socket.emit('create_new_game_session', { connection_id: connectionId }, function(response) {
+        if (response && response.success) {
+            location.reload();
+        } else {
+            showNotification('{{ _('Failed to create new game. Please try again.') }}', 'error');
+        }
+    });
 }
 window.startNewSession = startNewSession; // Make available globally for HTML onclick
+
+function endGameEarly() {
+    if (!currentSession || !currentSession.id) {
+        showNotification('{{ _('No active game session.') }}', 'warning');
+        return;
+    }
+    
+    if (confirm('{{ _('Are you sure you want to end the current game? The current scores will be final.') }}')) {
+        if (!isSocketConnected) {
+            showNotification('{{ _('Not connected. Please wait...') }}', 'error');
+            return;
+        }
+        
+        socket.emit('end_game_early', { 
+            connection_id: connectionId,
+            session_id: currentSession.id 
+        }, function(response) {
+            if (response && response.success) {
+                // Show session complete with current scores
+                showSessionComplete({
+                    user1_score: currentSession.user1_score,
+                    user2_score: currentSession.user2_score
+                });
+            } else {
+                showNotification('{{ _('Failed to end game. Please try again.') }}', 'error');
+            }
+        });
+    }
+}
+window.endGameEarly = endGameEarly; // Make available globally for HTML onclick
 
 // Socket events
 socket.on('session_joined', function(data) {
@@ -639,6 +683,15 @@ socket.on('session_ended', function(data) {
             location.reload();
         }
     }, 2000);
+});
+
+socket.on('game_ended_early', function(data) {
+    if (currentSession) {
+        currentSession.user1_score = data.user1_score;
+        currentSession.user2_score = data.user2_score;
+    }
+    showSessionComplete(data);
+    showNotification('{{ _('Game ended early.') }}', 'info', 3000);
 });
 
 // Notify when leaving the page
