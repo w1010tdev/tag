@@ -51,7 +51,7 @@ if (typeof io === 'undefined') {
 
 addDebugLog('📄 Chat页面加载 | Chat page loaded', 'info');
 
-const socket = io();
+let socket = io();
 addDebugLog('🔌 Socket.io初始化 | Socket.io initialized', 'info');
 
 const connectionId = {{ connection.id }};

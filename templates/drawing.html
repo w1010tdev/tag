@@ -80,7 +80,7 @@ if (typeof io === 'undefined') {
     document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
 }
 
-const socket = io();
+let socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
