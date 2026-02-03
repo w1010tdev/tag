@@ -9,74 +9,10 @@
     <!-- Eruda mobile debugger -->
     <script src="//fastly.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
-    {% block extra_css %}{% endblock %}
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="container">
-            <a href="/" class="logo"><i class="fas fa-comments"></i> {{ _('Social Connect') }}</a>
-            <div class="nav-links">
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> {{ _('Dashboard') }}</a>
-                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> {{ _('Logout') }}</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> {{ _('Login') }}</a>
-                    <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> {{ _('Register') }}</a>
-                {% endif %}
-                <!-- Simple inline socket status for Android compatibility -->
-                <span id="simple-socket-status" style="display: none; margin: 0 10px; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">⏳</span>
-                <div class="language-selector">
-                    <a href="{{ url_for('set_language', lang='en') }}" class="lang-link {% if get_locale() == 'en' %}active{% endif %}">EN</a>
-                    <span class="lang-divider">|</span>
-                    <a href="{{ url_for('set_language', lang='zh') }}" class="lang-link {% if get_locale() == 'zh' %}active{% endif %}">中文</a>
-                </div>
-            </div>
-        </div>
-    </nav>
     
-    <!-- Error notification container -->
-    <div id="error-notification" class="error-notification" style="display: none;"></div>
-    
-    <!-- Socket status indicator -->
-    <div id="socket-status" class="socket-status" style="display: none;">
-        <i class="fas fa-circle-notch fa-spin"></i> {{ _('Connecting...') }}
-    </div>
-    
-    <!-- Socket Debugging Panel -->
-    <div id="debug-panel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #1F2937; color: #F9FAFB; padding: 10px; max-height: 300px; overflow-y: auto; z-index: 99999; font-family: monospace; font-size: 12px; border-top: 3px solid #10B981;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #374151;">
-            <div style="font-weight: bold; font-size: 14px;">🔧 Socket调试面板 | Socket Debug Panel</div>
-            <button onclick="document.getElementById('debug-panel').style.display='none'" style="background: #DC2626; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">关闭 Close</button>
-        </div>
-        <div id="debug-info" style="line-height: 1.6;">
-            <div>⏰ 时间 Time: <span id="debug-time">--</span></div>
-            <div>📡 Socket.io状态 Status: <span id="debug-socketio-status" style="font-weight: bold; color: #FCD34D;">检查中...</span></div>
-            <div>🔌 连接状态 Connection: <span id="debug-connection-status" style="font-weight: bold; color: #FCD34D;">未知 Unknown</span></div>
-            <div>📊 事件数 Events: <span id="debug-event-count">0</span></div>
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #374151;">
-                <div style="font-weight: bold; margin-bottom: 5px;">📜 事件日志 Event Log:</div>
-                <div id="debug-log" style="max-height: 150px; overflow-y: auto; background: #111827; padding: 8px; border-radius: 4px; font-size: 11px;"></div>
-            </div>
-        </div>
-    </div>
-    
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
-    
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <p>&copy; 2024 {{ _('Social Connect') }}. {{ _('All rights reserved.') }} | v1.0.0</p>
-                <div class="footer-links">
-                    <a href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield"></i> {{ _('Admin Portal') }}</a>
-                </div>
-            </div>
-        </div>
-    </footer>
-    
+    <!-- Socket.io MUST load before page content -->
     <script src="//fastly.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js" onerror="handleSocketLibraryError()"></script>
+    
     <script>
         // ===== DEBUG PANEL FUNCTIONS =====
         let debugEventCount = 0;
@@ -322,6 +258,74 @@
             showNotification('{{ _('Connection error. Please check your internet connection and try again.') }}', 'error');
         }
     </script>
+    
+    {% block extra_css %}{% endblock %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo"><i class="fas fa-comments"></i> {{ _('Social Connect') }}</a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> {{ _('Dashboard') }}</a>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> {{ _('Logout') }}</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> {{ _('Login') }}</a>
+                    <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> {{ _('Register') }}</a>
+                {% endif %}
+                <!-- Simple inline socket status for Android compatibility -->
+                <span id="simple-socket-status" style="display: none; margin: 0 10px; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">⏳</span>
+                <div class="language-selector">
+                    <a href="{{ url_for('set_language', lang='en') }}" class="lang-link {% if get_locale() == 'en' %}active{% endif %}">EN</a>
+                    <span class="lang-divider">|</span>
+                    <a href="{{ url_for('set_language', lang='zh') }}" class="lang-link {% if get_locale() == 'zh' %}active{% endif %}">中文</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Error notification container -->
+    <div id="error-notification" class="error-notification" style="display: none;"></div>
+    
+    <!-- Socket status indicator -->
+    <div id="socket-status" class="socket-status" style="display: none;">
+        <i class="fas fa-circle-notch fa-spin"></i> {{ _('Connecting...') }}
+    </div>
+    
+    <!-- Socket Debugging Panel -->
+    <div id="debug-panel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #1F2937; color: #F9FAFB; padding: 10px; max-height: 300px; overflow-y: auto; z-index: 99999; font-family: monospace; font-size: 12px; border-top: 3px solid #10B981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #374151;">
+            <div style="font-weight: bold; font-size: 14px;">🔧 Socket调试面板 | Socket Debug Panel</div>
+            <button onclick="document.getElementById('debug-panel').style.display='none'" style="background: #DC2626; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">关闭 Close</button>
+        </div>
+        <div id="debug-info" style="line-height: 1.6;">
+            <div>⏰ 时间 Time: <span id="debug-time">--</span></div>
+            <div>📡 Socket.io状态 Status: <span id="debug-socketio-status" style="font-weight: bold; color: #FCD34D;">检查中...</span></div>
+            <div>🔌 连接状态 Connection: <span id="debug-connection-status" style="font-weight: bold; color: #FCD34D;">未知 Unknown</span></div>
+            <div>📊 事件数 Events: <span id="debug-event-count">0</span></div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #374151;">
+                <div style="font-weight: bold; margin-bottom: 5px;">📜 事件日志 Event Log:</div>
+                <div id="debug-log" style="max-height: 150px; overflow-y: auto; background: #111827; padding: 8px; border-radius: 4px; font-size: 11px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2024 {{ _('Social Connect') }}. {{ _('All rights reserved.') }} | v1.0.0</p>
+                <div class="footer-links">
+                    <a href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield"></i> {{ _('Admin Portal') }}</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>
