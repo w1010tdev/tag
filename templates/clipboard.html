@@ -36,6 +36,9 @@ const otherUsername = {{ other_user.username | tojson }};
 let roomJoined = false;
 let isSocketConnected = false;
 
+// Show initial connecting status
+updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+
 // Socket connection event handlers
 socket.on('connect', function() {
     isSocketConnected = true;

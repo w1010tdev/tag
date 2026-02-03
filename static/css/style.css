@@ -1218,12 +1218,13 @@ body {
     background-color: #FEF3C7;
     border: 2px solid #F59E0B;
     border-radius: 20px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    font-weight: 500;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #92400E;
     z-index: 9999;
     animation: slideInDown 0.3s ease-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .socket-status.connected {

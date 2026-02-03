@@ -92,6 +92,9 @@ let roomJoined = false;
 let currentSession = null;
 let isSocketConnected = false;
 
+// Show initial connecting status
+updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+
 // Socket connection event handlers
 socket.on('connect', function() {
     isSocketConnected = true;

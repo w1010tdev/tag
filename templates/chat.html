@@ -53,6 +53,9 @@ const SOCKET_ACK_TIMEOUT = 10000; // 10 seconds
 let roomJoined = false;
 let isSocketConnected = false;
 
+// Show initial connecting status
+updateSocketStatus('connecting', '{{ _('Connecting...') }}');
+
 // Socket connection event handlers
 socket.on('connect', function() {
     isSocketConnected = true;

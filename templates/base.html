@@ -115,13 +115,14 @@
             } else if (status === 'connected') {
                 statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
                 statusEl.style.display = 'block';
-                // Hide after 2 seconds
+                // Keep showing for 5 seconds instead of 2
                 setTimeout(() => {
                     statusEl.style.display = 'none';
-                }, 2000);
+                }, 5000);
             } else if (status === 'disconnected') {
                 statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
                 statusEl.style.display = 'block';
+                // Keep showing disconnected state persistently
             }
         }
         
