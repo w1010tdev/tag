@@ -75,12 +75,17 @@
 </div>
 
 <script>
-// Diagnostic: Check if socket.io is available
-if (typeof io === 'undefined') {
-    document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
-}
+let socket;
 
-let socket = io();
+// Initialize socket after DOM loads to ensure socket.io library is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if socket.io is available
+    if (typeof io === 'undefined') {
+        document.body.insertAdjacentHTML('beforeend', '<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #DC2626; color: white; padding: 10px; text-align: center; z-index: 99999; font-weight: bold;">❌ Socket.io未加载 | Socket.io not loaded</div>');
+        return;
+    }
+    
+    socket = io();
 const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
@@ -653,9 +658,10 @@ function showSessionComplete(data) {
 
 // Notify when leaving the page
 window.addEventListener('beforeunload', function() {
-    if (currentSession && currentSession.waiting && currentSession.is_creator) {
+    if (socket && currentSession && currentSession.waiting && currentSession.is_creator) {
         socket.emit('end_drawing_session', { connection_id: connectionId });
     }
 });
+}); // Close DOMContentLoaded
 </script>
 {% endblock %}

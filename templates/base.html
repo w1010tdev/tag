@@ -24,13 +24,6 @@
                 simpleStatus.style.color = '#991B1B';
                 simpleStatus.style.borderColor = '#DC2626';
             }
-            
-            const statusEl = document.getElementById('socket-status');
-            if (statusEl) {
-                statusEl.innerHTML = 'Socket.io library failed to load. Check network connection.';
-                statusEl.className = 'socket-status disconnected';
-                statusEl.style.display = 'block';
-            }
         }
         
         // Check if socket.io loaded successfully
@@ -85,30 +78,8 @@
             }
         }
         
-        // Socket status indicator - dual approach for Android compatibility
+        // Socket status indicator - simple inline only
         function updateSocketStatus(status, message) {
-            // Update fancy status indicator (may not work on all Android devices)
-            const statusEl = document.getElementById('socket-status');
-            if (statusEl) {
-                statusEl.className = 'socket-status ' + status;
-                
-                if (status === 'connecting') {
-                    statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + message;
-                    statusEl.style.display = 'block';
-                } else if (status === 'connected') {
-                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
-                    statusEl.style.display = 'block';
-                    // Keep showing for 5 seconds instead of 2
-                    setTimeout(() => {
-                        statusEl.style.display = 'none';
-                    }, 5000);
-                } else if (status === 'disconnected') {
-                    statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
-                    statusEl.style.display = 'block';
-                    // Keep showing disconnected state persistently
-                }
-            }
-            
             // Update simple inline status (works on all devices including Android)
             const simpleStatusEl = document.getElementById('simple-socket-status');
             if (simpleStatusEl) {
@@ -174,10 +145,7 @@
     <!-- Error notification container -->
     <div id="error-notification" class="error-notification" style="display: none;"></div>
     
-    <!-- Socket status indicator -->
-    <div id="socket-status" class="socket-status" style="display: none;">
-        <i class="fas fa-circle-notch fa-spin"></i> {{ _('Connecting...') }}
-    </div>
+
     
     <main class="main-content">
         {% block content %}{% endblock %}
