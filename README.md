@@ -105,6 +105,7 @@ http://localhost:5000
 #### Shared Clipboard
 - Click "Clipboard" on any connection
 - Type in your text area - changes sync in real-time
+- Use the toolbar to switch between text, handwriting, moods, stickers, and shared memories
 - See the other person's text updates instantly
 - Unread indicator shows when other person updates
 

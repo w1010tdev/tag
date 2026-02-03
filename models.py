@@ -99,6 +99,21 @@ def db_init():
                   FOREIGN KEY (user_id) REFERENCES users (id),
                   FOREIGN KEY (connection_id) REFERENCES connections (id),
                   UNIQUE(user_id, connection_id))''')
+
+    # Connection memories table
+    c.execute('''CREATE TABLE IF NOT EXISTS connection_memories
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  connection_id INTEGER NOT NULL,
+                  creator_id INTEGER NOT NULL,
+                  memory_text TEXT NOT NULL,
+                  memory_date TEXT NOT NULL,
+                  status TEXT DEFAULT 'pending',
+                  approved_by INTEGER,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  approved_at TIMESTAMP,
+                  FOREIGN KEY (connection_id) REFERENCES connections (id),
+                  FOREIGN KEY (creator_id) REFERENCES users (id),
+                  FOREIGN KEY (approved_by) REFERENCES users (id))''')
     
     conn.commit()
     conn.close()
@@ -749,3 +764,75 @@ class ReadStatus:
         count = c.fetchone()['count']
         conn.close()
         return count > 0
+
+class ConnectionMemory:
+    def __init__(self, id, connection_id, creator_id, memory_text, memory_date, status, approved_by, created_at, approved_at):
+        self.id = id
+        self.connection_id = connection_id
+        self.creator_id = creator_id
+        self.memory_text = memory_text
+        self.memory_date = memory_date
+        self.status = status
+        self.approved_by = approved_by
+        self.created_at = created_at
+        self.approved_at = approved_at
+
+    @staticmethod
+    def create(connection_id, creator_id, memory_text, memory_date):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''INSERT INTO connection_memories
+                    (connection_id, creator_id, memory_text, memory_date)
+                    VALUES (?, ?, ?, ?)''',
+                 (connection_id, creator_id, memory_text, memory_date))
+        memory_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return memory_id
+
+    @staticmethod
+    def get_for_connection(connection_id):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''SELECT cm.*, u.username AS creator_name,
+                    au.username AS approver_name
+                    FROM connection_memories cm
+                    JOIN users u ON cm.creator_id = u.id
+                    LEFT JOIN users au ON cm.approved_by = au.id
+                    WHERE cm.connection_id = ?
+                    ORDER BY cm.memory_date DESC, cm.created_at DESC''',
+                 (connection_id,))
+        rows = c.fetchall()
+        conn.close()
+        memories = []
+        for row in rows:
+            memories.append({
+                'id': row['id'],
+                'connection_id': row['connection_id'],
+                'creator_id': row['creator_id'],
+                'creator_name': row['creator_name'],
+                'memory_text': row['memory_text'],
+                'memory_date': row['memory_date'],
+                'status': row['status'],
+                'approved_by': row['approved_by'],
+                'approver_name': row['approver_name'],
+                'created_at': row['created_at'],
+                'approved_at': row['approved_at']
+            })
+        return memories
+
+    @staticmethod
+    def approve(connection_id, memory_id, user_id):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''UPDATE connection_memories
+                    SET status = 'approved',
+                        approved_by = ?,
+                        approved_at = CURRENT_TIMESTAMP
+                    WHERE id = ? AND connection_id = ?
+                    AND status = 'pending' AND creator_id != ?''',
+                 (user_id, memory_id, connection_id, user_id))
+        updated = c.rowcount
+        conn.commit()
+        conn.close()
+        return updated > 0

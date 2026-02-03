@@ -15,15 +15,117 @@
     <div class="clipboard-container">
         <div class="clipboard-pane other-pane">
             <h3><i class="fas fa-user-friends"></i> {{ _("%(username)s's Area", username=other_user.username) }}</h3>
-            <textarea id="other-clipboard" class="clipboard-textarea" 
-                      placeholder="{{ _('Waiting for %(username)s to type...', username=other_user.username) }}" readonly></textarea>
+            <div id="other-display" class="clipboard-display">
+                <textarea id="other-clipboard" class="clipboard-textarea" 
+                          placeholder="{{ _('Waiting for %(username)s to type...', username=other_user.username) }}" readonly></textarea>
+                <div class="clipboard-drawing-wrap">
+                    <canvas id="other-drawing-canvas" width="600" height="360"></canvas>
+                </div>
+            </div>
         </div>
         <div class="clipboard-pane user-pane">
             <h3><i class="fas fa-user"></i> {{ _('Your Area (%(username)s)', username=current_user.username) }}</h3>
-            <textarea id="my-clipboard" class="clipboard-textarea" 
-                      placeholder="{{ _('Type here... Changes sync in real-time') }}"></textarea>
+            <div id="my-display" class="clipboard-display">
+                <textarea id="my-clipboard" class="clipboard-textarea" 
+                          placeholder="{{ _('Type here... Changes sync in real-time') }}"></textarea>
+                <div class="clipboard-drawing-wrap">
+                    <canvas id="my-drawing-canvas" width="600" height="360"></canvas>
+                </div>
+            </div>
+            <div class="clipboard-toolbar">
+                <div class="toolbar-group">
+                    <button type="button" class="toolbar-btn active" data-mode="text">
+                        <i class="fas fa-font"></i> {{ _('Text') }}
+                    </button>
+                    <button type="button" class="toolbar-btn" data-mode="drawing">
+                        <i class="fas fa-pen-nib"></i> {{ _('Handwriting') }}
+                    </button>
+                </div>
+                <div class="toolbar-group">
+                    <div class="toolbar-select">
+                        <button type="button" class="toolbar-btn" id="mood-toggle">
+                            <i class="far fa-face-smile"></i> {{ _('Mood') }}
+                        </button>
+                        <div class="toolbar-dropdown" id="mood-menu">
+                            <button type="button" class="dropdown-item" data-prefix="[😁{{ _('Happy') }}] ">
+                                😁 {{ _('Happy') }}
+                            </button>
+                            <button type="button" class="dropdown-item" data-prefix="[😞{{ _('Pout') }}] ">
+                                😞 {{ _('Pout') }}
+                            </button>
+                            <button type="button" class="dropdown-item" data-prefix="[😊{{ _('Warm') }}] ">
+                                😊 {{ _('Warm') }}
+                            </button>
+                            <button type="button" class="dropdown-item" data-prefix="[😔{{ _('Sad') }}] ">
+                                😔 {{ _('Sad') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="toolbar-select">
+                        <button type="button" class="toolbar-btn" id="sticker-toggle">
+                            <i class="fas fa-icons"></i> {{ _('Stickers') }}
+                        </button>
+                        <div class="toolbar-dropdown" id="sticker-menu">
+                            <button type="button" class="dropdown-item" data-emoji="🎉">🎉 {{ _('Celebrate') }}</button>
+                            <button type="button" class="dropdown-item" data-emoji="✨">✨ {{ _('Sparkle') }}</button>
+                            <button type="button" class="dropdown-item" data-emoji="🔥">🔥 {{ _('Fire') }}</button>
+                            <button type="button" class="dropdown-item" data-emoji="💡">💡 {{ _('Idea') }}</button>
+                            <button type="button" class="dropdown-item" data-emoji="fa-solid fa-heart">❤ {{ _('Heart') }}</button>
+                            <button type="button" class="dropdown-item" data-emoji="fa-solid fa-star">⭐ {{ _('Star') }}</button>
+                        </div>
+                    </div>
+                    <button type="button" class="toolbar-btn" id="memory-toggle">
+                        <i class="fas fa-archive"></i> {{ _('Memories') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="clipboard-pane memory-pane">
+            <h3><i class="fas fa-book-open"></i> {{ _('Memories') }}</h3>
+            <div class="memory-list">
+                {% if memories %}
+                    {% for memory in memories %}
+                    <div class="memory-card {{ 'memory-approved' if memory.status == 'approved' else 'memory-pending' }}" data-memory-id="{{ memory.id }}">
+                        <div class="memory-header">
+                            <span class="memory-date">{{ memory.memory_date }}</span>
+                            <span class="memory-status">
+                                {% if memory.status == 'approved' %}
+                                    <i class="fas fa-check-circle"></i> {{ _('Approved') }}
+                                {% else %}
+                                    <i class="fas fa-hourglass-half"></i> {{ _('Pending') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="memory-text">{{ memory.memory_text }}</div>
+                        <div class="memory-meta">
+                            <span>{{ _('By %(name)s', name=memory.creator_name) }}</span>
+                            {% if memory.status == 'approved' and memory.approver_name %}
+                                <span>{{ _('Confirmed by %(name)s', name=memory.approver_name) }}</span>
+                            {% endif %}
+                        </div>
+                        {% if memory.status != 'approved' and memory.creator_id != current_user.id %}
+                        <button type="button" class="btn btn-sm btn-primary approve-memory-btn" data-memory-id="{{ memory.id }}">
+                            <i class="fas fa-check"></i> {{ _('Approve') }}
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">{{ _('No memories yet. Add one below!') }}</p>
+                {% endif %}
+            </div>
+            <form class="memory-form" id="memory-form">
+                <label for="memory-date">{{ _('Date') }}</label>
+                <input type="date" id="memory-date" required>
+                <label for="memory-text">{{ _('Memory') }}</label>
+                <textarea id="memory-text" maxlength="200" placeholder="{{ _('Add a shared memory...') }}" required></textarea>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> {{ _('Add Memory') }}
+                </button>
+            </form>
         </div>
     </div>
+    <div class="clipboard-sticker-layer" id="clipboard-sticker-layer"></div>
 </div>
 
 <script>
@@ -37,9 +139,23 @@ const connectionId = {{ connection.id }};
 const myUserId = {{ current_user.id }};
 const otherUserId = {{ other_user.id }};
 const otherUsername = {{ other_user.username | tojson }};
+const memoryEndpoint = {{ url_for('add_memory', connection_id=connection.id) | tojson }};
+const approveEndpointTemplate = {{ url_for('approve_memory', connection_id=connection.id, memory_id=0) | tojson }};
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 let roomJoined = false;
 let isSocketConnected = false;
+let activeMode = 'text';
+let moodPrefix = '';
+let drawingPlaybackTimer = null;
+let drawingPoints = [];
+let otherDrawingHistory = [];
+let drawingIsComposing = false;
+let otherDrawingHasContent = false;
+let localDrawingHasContent = false;
+let remoteDrawingActive = false;
+let isReplaying = false;
+let otherLastStroke = 0;
 
 // Show initial connecting status
 if (typeof updateSocketStatus === 'function') {
@@ -131,6 +247,374 @@ socket.on('user_status_changed', function(data) {
     }
 });
 
+const myClipboard = document.getElementById('my-clipboard');
+const otherClipboard = document.getElementById('other-clipboard');
+const myDisplay = document.getElementById('my-display');
+const otherDisplay = document.getElementById('other-display');
+const myDrawingCanvas = document.getElementById('my-drawing-canvas');
+const otherDrawingCanvas = document.getElementById('other-drawing-canvas');
+const myDrawingCtx = myDrawingCanvas.getContext('2d');
+const otherDrawingCtx = otherDrawingCanvas.getContext('2d');
+const stickerLayer = document.getElementById('clipboard-sticker-layer');
+const toolbarButtons = document.querySelectorAll('.toolbar-btn[data-mode]');
+const moodToggle = document.getElementById('mood-toggle');
+const moodMenu = document.getElementById('mood-menu');
+const stickerToggle = document.getElementById('sticker-toggle');
+const stickerMenu = document.getElementById('sticker-menu');
+const memoryToggle = document.getElementById('memory-toggle');
+const memoryForm = document.getElementById('memory-form');
+const memoryDateInput = document.getElementById('memory-date');
+const memoryTextInput = document.getElementById('memory-text');
+const approveButtons = document.querySelectorAll('.approve-memory-btn');
+const memoryPane = document.querySelector('.memory-pane');
+const memoryList = document.querySelector('.memory-list');
+
+function setActiveMode(mode) {
+    activeMode = mode;
+    toolbarButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    const isDrawing = mode === 'drawing';
+    myDisplay.classList.toggle('drawing-active', isDrawing);
+    otherDisplay.classList.toggle('drawing-active', isDrawing || remoteDrawingActive);
+    if (!isDrawing) {
+        stopDrawingPlayback();
+        if (localDrawingHasContent) {
+            clearMyDrawing();
+        }
+    } else if (!drawingPoints.length && otherDrawingHistory.length) {
+        replayDrawingHistory();
+    }
+}
+
+function setRemoteDrawingActive(active) {
+    remoteDrawingActive = active;
+    otherDisplay.classList.toggle('drawing-active', active || activeMode === 'drawing');
+}
+
+function toggleDropdown(button, menu) {
+    const isOpen = menu.classList.toggle('open');
+    button.classList.toggle('active', isOpen);
+}
+
+document.addEventListener('click', (event) => {
+    if (!moodToggle.contains(event.target) && !moodMenu.contains(event.target)) {
+        moodMenu.classList.remove('open');
+        moodToggle.classList.remove('active');
+    }
+    if (!stickerToggle.contains(event.target) && !stickerMenu.contains(event.target)) {
+        stickerMenu.classList.remove('open');
+        stickerToggle.classList.remove('active');
+    }
+});
+
+toolbarButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        setActiveMode(btn.dataset.mode);
+    });
+});
+
+moodToggle.addEventListener('click', () => {
+    toggleDropdown(moodToggle, moodMenu);
+});
+
+stickerToggle.addEventListener('click', () => {
+    toggleDropdown(stickerToggle, stickerMenu);
+});
+
+memoryToggle.addEventListener('click', () => {
+    memoryPane.classList.toggle('is-open');
+    if (memoryPane.classList.contains('is-open')) {
+        memoryPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+
+if (memoryList && memoryList.children.length === 1 && memoryPane) {
+    memoryPane.classList.add('is-open');
+}
+
+moodMenu.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+        moodPrefix = item.dataset.prefix || '';
+        applyMoodPrefix();
+        myClipboard.focus();
+        moodMenu.classList.remove('open');
+        moodToggle.classList.remove('active');
+    });
+});
+
+stickerMenu.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const emoji = item.dataset.emoji;
+        spawnSticker(emoji);
+        stickerMenu.classList.remove('open');
+        stickerToggle.classList.remove('active');
+    });
+});
+
+memoryForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = {
+        memory_text: memoryTextInput.value.trim(),
+        memory_date: memoryDateInput.value
+    };
+    if (!payload.memory_text || !payload.memory_date) {
+        showNotification('{{ _('Please fill out the memory and date.') }}', 'warning', 2500);
+        return;
+    }
+    try {
+        const response = await fetch(memoryEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || '{{ _('Unable to add memory.') }}');
+        }
+        showNotification('{{ _('Memory submitted for review.') }}', 'success', 2500);
+        location.reload();
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+});
+
+approveButtons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const memoryId = btn.dataset.memoryId;
+        if (!memoryId) return;
+        try {
+            const response = await fetch(approveEndpointTemplate.replace('0/approve', `${memoryId}/approve`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || '{{ _('Unable to approve memory.') }}');
+            }
+            showNotification('{{ _('Memory approved!') }}', 'success', 2500);
+            location.reload();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    });
+});
+
+function spawnSticker(emoji) {
+    if (!emoji) return;
+    const sticker = document.createElement('div');
+    sticker.className = 'sticker-burst';
+    if (emoji.startsWith('fa-')) {
+        sticker.innerHTML = `<i class="${emoji}"></i>`;
+    } else {
+        sticker.textContent = emoji;
+    }
+    const rect = stickerLayer.getBoundingClientRect();
+    const startX = Math.random() * rect.width * 0.6 + rect.width * 0.2;
+    sticker.style.setProperty('--sticker-start-x', `${startX}px`);
+    const shift = (Math.random() * 120) - 60;
+    sticker.style.setProperty('--sticker-shift', `${shift}px`);
+    stickerLayer.appendChild(sticker);
+    sticker.addEventListener('animationend', () => sticker.remove());
+}
+
+function applyMoodPrefix() {
+    if (!moodPrefix) return;
+    if (!myClipboard.value.startsWith(moodPrefix)) {
+        myClipboard.value = moodPrefix + myClipboard.value.replace(moodPrefix, '');
+        lastLocalClipboard = myClipboard.value;
+        sendClipboardUpdate(myClipboard.value);
+    }
+    moodPrefix = '';
+}
+
+function clearCanvas(ctx, canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function setupDrawingCanvas(canvas, ctx) {
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    clearCanvas(ctx, canvas);
+}
+
+setupDrawingCanvas(myDrawingCanvas, myDrawingCtx);
+setupDrawingCanvas(otherDrawingCanvas, otherDrawingCtx);
+
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+function startDraw(e) {
+    if (activeMode !== 'drawing') return;
+    const rect = myDrawingCanvas.getBoundingClientRect();
+    isDrawing = true;
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+    myDrawingCtx.beginPath();
+    myDrawingCtx.moveTo(lastX, lastY);
+    emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
+}
+
+function drawStroke(x, y) {
+    myDrawingCtx.lineWidth = 4;
+    myDrawingCtx.strokeStyle = '#1f2937';
+    myDrawingCtx.lineTo(x, y);
+    myDrawingCtx.stroke();
+    myDrawingCtx.beginPath();
+    myDrawingCtx.moveTo(x, y);
+    localDrawingHasContent = true;
+    emitDrawing({ type: 'draw', x, y });
+}
+
+function moveDraw(e) {
+    if (!isDrawing || activeMode !== 'drawing') return;
+    const rect = myDrawingCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    drawStroke(x, y);
+    lastX = x;
+    lastY = y;
+}
+
+function endDraw() {
+    if (!isDrawing) return;
+    isDrawing = false;
+    myDrawingCtx.beginPath();
+    emitDrawing({ type: 'stroke_end' });
+}
+
+function emitDrawing(drawing) {
+    if (!roomJoined || !isSocketConnected) return;
+    socket.emit('clipboard_drawing', {
+        connection_id: connectionId,
+        drawing
+    });
+}
+
+function clearMyDrawing() {
+    clearCanvas(myDrawingCtx, myDrawingCanvas);
+    emitDrawing({ type: 'clear' });
+    localDrawingHasContent = false;
+    setRemoteDrawingActive(false);
+}
+
+myDrawingCanvas.addEventListener('mousedown', startDraw);
+myDrawingCanvas.addEventListener('mousemove', moveDraw);
+myDrawingCanvas.addEventListener('mouseup', endDraw);
+myDrawingCanvas.addEventListener('mouseout', endDraw);
+
+myDrawingCanvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    if (activeMode !== 'drawing') return;
+    const touch = event.touches[0];
+    const rect = myDrawingCanvas.getBoundingClientRect();
+    isDrawing = true;
+    lastX = touch.clientX - rect.left;
+    lastY = touch.clientY - rect.top;
+    myDrawingCtx.beginPath();
+    myDrawingCtx.moveTo(lastX, lastY);
+    emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
+}, { passive: false });
+
+myDrawingCanvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+    if (!isDrawing || activeMode !== 'drawing') return;
+    const touch = event.touches[0];
+    const rect = myDrawingCanvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    drawStroke(x, y);
+}, { passive: false });
+
+myDrawingCanvas.addEventListener('touchend', (event) => {
+    event.preventDefault();
+    endDraw();
+}, { passive: false });
+
+function queueDrawingPoint(drawing) {
+    if (drawing.type === 'clear') {
+        otherDrawingHistory = [];
+        drawingPoints = [];
+        otherDrawingHasContent = false;
+        clearCanvas(otherDrawingCtx, otherDrawingCanvas);
+        setRemoteDrawingActive(false);
+        return;
+    } else {
+        otherDrawingHistory.push(drawing);
+        otherDrawingHasContent = true;
+        drawingPoints.push(drawing);
+    }
+    otherLastStroke = Date.now();
+    if (drawing.type === 'stroke_start' || drawing.type === 'draw') {
+        setRemoteDrawingActive(true);
+    }
+}
+
+function stopDrawingPlayback() {
+    if (drawingPlaybackTimer) {
+        clearInterval(drawingPlaybackTimer);
+        drawingPlaybackTimer = null;
+    }
+    isReplaying = false;
+}
+
+function startDrawingPlayback() {
+    if (drawingPlaybackTimer) return;
+    isReplaying = true;
+    drawingPlaybackTimer = setInterval(() => {
+        if (drawingPoints.length === 0) {
+            stopDrawingPlayback();
+            return;
+        }
+        const drawing = drawingPoints.shift();
+        renderDrawing(otherDrawingCtx, otherDrawingCanvas, drawing);
+    }, 40);
+}
+
+function renderDrawing(ctx, canvas, drawing) {
+    if (!drawing) return;
+    if (drawing.type === 'clear') {
+        clearCanvas(ctx, canvas);
+        if (ctx === otherDrawingCtx) {
+            otherDrawingHistory = [];
+            otherDrawingHasContent = false;
+        }
+        return;
+    }
+    if (drawing.type === 'stroke_end' || drawing.type === 'stroke_start') {
+        ctx.beginPath();
+        if (drawing.type === 'stroke_start') {
+            ctx.moveTo(drawing.x, drawing.y);
+        }
+        return;
+    }
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineTo(drawing.x, drawing.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(drawing.x, drawing.y);
+    if (ctx === otherDrawingCtx) {
+        otherDrawingHasContent = true;
+    }
+}
+
+function replayDrawingHistory() {
+    if (!otherDrawingHistory.length) {
+        return;
+    }
+    drawingPoints = otherDrawingHistory.slice();
+    clearCanvas(otherDrawingCtx, otherDrawingCanvas);
+    startDrawingPlayback();
+}
+
 // Load existing content
 {% if clipboard_data %}
     {% if current_user.id in clipboard_data %}
@@ -140,9 +624,6 @@ socket.on('user_status_changed', function(data) {
     document.getElementById('other-clipboard').value = {{ clipboard_data[other_user.id].content|tojson }};
     {% endif %}
 {% endif %}
-
-const myClipboard = document.getElementById('my-clipboard');
-const otherClipboard = document.getElementById('other-clipboard');
 let lastLocalClipboard = myClipboard.value;
 
 function shouldUpdateLocalClipboard(content) {
@@ -168,6 +649,7 @@ function sendClipboardUpdate(content) {
 
 myClipboard.addEventListener('compositionstart', function(e) {
     isComposing = true;
+    drawingIsComposing = true;
 });
 
 myClipboard.addEventListener('input', function(e) {
@@ -177,12 +659,25 @@ myClipboard.addEventListener('input', function(e) {
     }
     
     clearTimeout(timeout);
+    if (!drawingIsComposing && moodPrefix) {
+        if (!e.target.value.startsWith(moodPrefix)) {
+            const selectionStart = e.target.selectionStart;
+            const selectionEnd = e.target.selectionEnd;
+            const cleaned = e.target.value.replace(moodPrefix, '');
+            e.target.value = moodPrefix + cleaned;
+            const offset = moodPrefix.length;
+            e.target.setSelectionRange(selectionStart + offset, selectionEnd + offset);
+        }
+        moodPrefix = '';
+    }
+    setRemoteDrawingActive(false);
+    clearCanvas(otherDrawingCtx, otherDrawingCanvas);
     lastLocalClipboard = e.target.value;
     timeout = setTimeout(() => {
         sendClipboardUpdate(e.target.value);
     }, 200); // Reduced from 500ms to 200ms for faster sync
 });
-
+ 
 // Add support for composition events (pinyin/IME input)
 myClipboard.addEventListener('compositionupdate', function(e) {
     // Sync even during composition (pinyin typing)
@@ -195,10 +690,15 @@ myClipboard.addEventListener('compositionupdate', function(e) {
 
 myClipboard.addEventListener('compositionend', function(e) {
     isComposing = false;
+    drawingIsComposing = false;
     // Final sync when composition completes
     clearTimeout(timeout);
     lastLocalClipboard = e.target.value;
     sendClipboardUpdate(e.target.value);
+});
+
+myClipboard.addEventListener('focus', () => {
+    setActiveMode('text');
 });
 
 // Receive updates
@@ -212,6 +712,35 @@ socket.on('clipboard_sync', function(data) {
     if (data.content !== otherClipboard.value) {
         otherClipboard.value = data.content;
     }
+    if (data.content.trim()) {
+        setRemoteDrawingActive(false);
+        clearCanvas(otherDrawingCtx, otherDrawingCanvas);
+    }
 });
+
+socket.on('clipboard_drawing_update', function(data) {
+    if (data.user_id === myUserId) {
+        renderDrawing(myDrawingCtx, myDrawingCanvas, data.drawing);
+        if (data.drawing.type === 'clear') {
+            clearCanvas(myDrawingCtx, myDrawingCanvas);
+        }
+        return;
+    }
+    queueDrawingPoint(data.drawing);
+    startDrawingPlayback();
+});
+
+setActiveMode('text');
+setInterval(() => {
+    if (!remoteDrawingActive) {
+        return;
+    }
+    if (!drawingPoints.length && otherDrawingHistory.length && otherDrawingHasContent && !isReplaying && Date.now() - otherLastStroke > 2000) {
+        replayDrawingHistory();
+    }
+    if (Date.now() - otherLastStroke > 5000) {
+        setRemoteDrawingActive(false);
+    }
+}, 2000);
 </script>
 {% endblock %}
