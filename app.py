@@ -297,14 +297,26 @@ def clipboard(connection_id):
         return render_template('error.html', message='Connection not found')
     
     clipboard_data = SharedClipboard.get_by_connection(connection_id)
-    memories = ConnectionMemory.get_for_connection(connection_id)
     other_user = connection.get_other_user(current_user.id)
     
     return render_template('clipboard.html', 
                          connection=connection, 
                          other_user=other_user,
-                         clipboard_data=clipboard_data,
-                         memories=memories)
+                         clipboard_data=clipboard_data)
+
+@app.route('/memories/<int:connection_id>')
+@login_required
+def memories(connection_id):
+    connection = Connection.get_by_id(connection_id)
+    if not connection or not connection.involves_user(current_user.id):
+        return render_template('error.html', message='Connection not found')
+
+    other_user = connection.get_other_user(current_user.id)
+    memories = ConnectionMemory.get_for_connection(connection_id)
+    return render_template('memories.html',
+                           connection=connection,
+                           other_user=other_user,
+                           memories=memories)
 
 @app.route('/drawing/<int:connection_id>')
 @login_required

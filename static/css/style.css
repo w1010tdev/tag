@@ -582,6 +582,19 @@ body {
     box-shadow: 0 6px 18px rgba(59, 130, 246, 0.15);
 }
 
+.memory-page {
+    margin-top: 1rem;
+}
+
+.memory-pane.standalone-memory {
+    box-shadow: 0 2px 10px rgba(30, 64, 175, 0.12);
+    border-left-color: #4f46e5;
+}
+
+.toolbar-btn.link-btn {
+    text-decoration: none;
+}
+
 .memory-list {
     display: flex;
     flex-direction: column;
@@ -1064,6 +1077,10 @@ body {
     }
 
     .memory-pane.is-open {
+        display: flex;
+    }
+
+    .memory-pane.standalone-memory {
         display: flex;
     }
     

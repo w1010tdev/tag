@@ -25,6 +25,11 @@
             <h3>{{ _('Drawing Game') }}</h3>
             <p>{{ _('Play Pictionary together') }}</p>
         </a>
+        <a href="{{ url_for('memories', connection_id=connection.id) }}" class="feature-link">
+            <div class="feature-icon"><i class="fas fa-book-open fa-3x"></i></div>
+            <h3>{{ _('Memories') }}</h3>
+            <p>{{ _('Shared timeline of memories') }}</p>
+        </a>
     </div>
 </div>
 {% endblock %}
