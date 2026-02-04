@@ -1103,6 +1103,24 @@ body {
     .memory-pane.standalone-memory {
         display: flex;
     }
+
+    .memory-page {
+        margin-top: 0.5rem;
+    }
+
+    .memory-list {
+        max-height: 240px;
+    }
+
+    .memory-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .memory-form {
+        padding-top: 0.5rem;
+    }
     
     /* Dashboard optimizations */
     .token-card {

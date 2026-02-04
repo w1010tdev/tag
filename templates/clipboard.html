@@ -396,6 +396,9 @@ function endDraw() {
 
 function emitDrawing(drawing) {
     if (!roomJoined || !isSocketConnected) return;
+    if (!drawing.ts) {
+        drawing.ts = Date.now() / 1000;
+    }
     socket.emit('clipboard_drawing', {
         connection_id: connectionId,
         drawing

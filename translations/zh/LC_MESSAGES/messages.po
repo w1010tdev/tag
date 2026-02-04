@@ -241,6 +241,132 @@ msgstr "剪贴板"
 msgid "Drawing"
 msgstr "绘画"
 
+#: templates/dashboard.html:55 templates/connection.html:30
+msgid "Memories"
+msgstr "回忆"
+
+#: templates/connection.html:31
+msgid "Shared timeline of memories"
+msgstr "共享回忆时间线"
+
+#: templates/clipboard.html:41
+msgid "Handwriting"
+msgstr "手写"
+
+#: templates/clipboard.html:47
+msgid "Mood"
+msgstr "情绪"
+
+#: templates/clipboard.html:51
+msgid "Happy"
+msgstr "开心"
+
+#: templates/clipboard.html:54
+msgid "Pout"
+msgstr "噘嘴"
+
+#: templates/clipboard.html:57
+msgid "Warm"
+msgstr "温暖"
+
+#: templates/clipboard.html:60
+msgid "Sad"
+msgstr "难过"
+
+#: templates/clipboard.html:66
+msgid "Stickers"
+msgstr "表情"
+
+#: templates/clipboard.html:69
+msgid "Celebrate"
+msgstr "庆祝"
+
+#: templates/clipboard.html:70
+msgid "Sparkle"
+msgstr "闪光"
+
+#: templates/clipboard.html:71
+msgid "Fire"
+msgstr "火焰"
+
+#: templates/clipboard.html:72
+msgid "Idea"
+msgstr "灵感"
+
+#: templates/clipboard.html:73
+msgid "Heart"
+msgstr "爱心"
+
+#: templates/clipboard.html:74
+msgid "Star"
+msgstr "星星"
+
+#: templates/memories.html:3 templates/memories.html:8
+#, python-format
+msgid "Memories with %(username)s"
+msgstr "与 %(username)s 的回忆"
+
+#: templates/memories.html:24
+msgid "Approved"
+msgstr "已通过"
+
+#: templates/memories.html:26
+msgid "Pending"
+msgstr "审核中"
+
+#: templates/memories.html:32
+#, python-format
+msgid "By %(name)s"
+msgstr "由 %(name)s 添加"
+
+#: templates/memories.html:34
+#, python-format
+msgid "Confirmed by %(name)s"
+msgstr "由 %(name)s 确认"
+
+#: templates/memories.html:39
+msgid "Approve"
+msgstr "确认"
+
+#: templates/memories.html:45
+msgid "No memories yet. Add one below!"
+msgstr "还没有回忆，下面添加一个吧！"
+
+#: templates/memories.html:49
+msgid "Date"
+msgstr "日期"
+
+#: templates/memories.html:51
+msgid "Memory"
+msgstr "回忆"
+
+#: templates/memories.html:52
+msgid "Add a shared memory..."
+msgstr "添加一段共享回忆..."
+
+#: templates/memories.html:54
+msgid "Add Memory"
+msgstr "添加回忆"
+
+#: templates/memories.html:78
+msgid "Please fill out the memory and date."
+msgstr "请填写回忆内容和日期。"
+
+#: templates/memories.html:92
+msgid "Unable to add memory."
+msgstr "无法添加回忆。"
+
+#: templates/memories.html:94
+msgid "Memory submitted for review."
+msgstr "回忆已提交审核。"
+
+#: templates/memories.html:115
+msgid "Unable to approve memory."
+msgstr "无法确认回忆。"
+
+#: templates/memories.html:117
+msgid "Memory approved!"
+msgstr "回忆已确认！"
 #: templates/dashboard.html:58
 msgid "No connections yet. Share your invite token to connect with others!"
 msgstr "还没有连接。分享您的邀请令牌以与他人连接！"
