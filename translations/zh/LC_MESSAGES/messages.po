@@ -336,6 +336,14 @@ msgstr "还没有回忆，下面添加一个吧！"
 msgid "Date"
 msgstr "日期"
 
+#: templates/memories.html:16
+msgid "Memory List"
+msgstr "回忆列表"
+
+#: templates/memories.html:42
+msgid "Add New Memory"
+msgstr "添加新回忆"
+
 #: templates/memories.html:51
 msgid "Memory"
 msgstr "回忆"
