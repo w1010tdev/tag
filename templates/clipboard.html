@@ -222,24 +222,28 @@ function setActiveMode(mode) {
     myDisplay.classList.toggle('drawing-active', isDrawing);
     otherDisplay.classList.toggle('drawing-active', isDrawing || remoteDrawingActive);
     document.querySelector('.clipboard-container').classList.toggle('handwriting-mode', isDrawing);
+    if (isDrawing) {
+        scheduleCanvasResize();
+    }
     if (!isDrawing) {
         stopDrawingPlayback();
         if (localDrawingHasContent) {
             clearMyDrawing();
         }
     } else if (!drawingPoints.length && otherDrawingHistory.length) {
-        setTimeout(() => {
-            refreshDrawingCanvases();
-            replayDrawingHistory();
-        }, 0);
+        scheduleCanvasResize();
+        setTimeout(replayDrawingHistory, 0);
     } else if (isDrawing) {
-        setTimeout(refreshDrawingCanvases, 0);
+        scheduleCanvasResize();
     }
 }
 
 function setRemoteDrawingActive(active) {
     remoteDrawingActive = active;
     otherDisplay.classList.toggle('drawing-active', active || activeMode === 'drawing');
+    if (remoteDrawingActive) {
+        scheduleCanvasResize();
+    }
 }
 
 function toggleDropdown(button, menu) {
@@ -341,33 +345,63 @@ function clearCanvas(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function setupDrawingCanvas(canvas, ctx) {
+let canvasResizePending = false;
+
+function getCanvasSize(canvas) {
     const container = canvas.parentElement;
-    let rect = container.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) {
+    let width = container.offsetWidth || container.clientWidth;
+    let height = container.offsetHeight || container.clientHeight;
+    if (width < 1 || height < 1) {
         const display = canvas.closest('.clipboard-display');
         if (display) {
-            rect = display.getBoundingClientRect();
+            width = display.clientWidth || width;
+            height = display.clientHeight || height;
         }
     }
-    const width = Math.round(rect.width) || canvas.width || 600;
-    const height = Math.round(rect.height) || canvas.height || 360;
-    canvas.width = width;
-    canvas.height = height;
+    width = Math.round(width) || canvas.width || 600;
+    height = Math.round(height) || canvas.height || 360;
+    return { width, height };
+}
+
+function setupDrawingCanvas(canvas, ctx) {
+    const size = getCanvasSize(canvas);
+    if (size.width < 1 || size.height < 1) {
+        return false;
+    }
+    const resized = canvas.width !== size.width || canvas.height !== size.height;
+    canvas.width = size.width;
+    canvas.height = size.height;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    clearCanvas(ctx, canvas);
+    if (resized) {
+        clearCanvas(ctx, canvas);
+    }
+    return true;
 }
 
 function refreshDrawingCanvases() {
-    setupDrawingCanvas(myDrawingCanvas, myDrawingCtx);
-    setupDrawingCanvas(otherDrawingCanvas, otherDrawingCtx);
+    const myReady = setupDrawingCanvas(myDrawingCanvas, myDrawingCtx);
+    const otherReady = setupDrawingCanvas(otherDrawingCanvas, otherDrawingCtx);
+    if (!myReady || !otherReady) {
+        scheduleCanvasResize();
+    }
+}
+
+function scheduleCanvasResize() {
+    if (canvasResizePending) return;
+    canvasResizePending = true;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            canvasResizePending = false;
+            refreshDrawingCanvases();
+        });
+    });
 }
 
 refreshDrawingCanvases();
 window.addEventListener('resize', () => {
     if (activeMode === 'drawing' || remoteDrawingActive) {
-        refreshDrawingCanvases();
+        scheduleCanvasResize();
     }
 });
 
@@ -697,6 +731,7 @@ socket.on('clipboard_drawing_update', function(data) {
         }
         return;
     }
+    scheduleCanvasResize();
     queueDrawingPoint(data.drawing);
     startDrawingPlayback();
 });
