@@ -116,7 +116,9 @@ def admin_required(f):
 def csrf_protect_route(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        csrf.protect()
+        response = csrf.protect()
+        if response is not None:
+            return response
         return f(*args, **kwargs)
     return decorated_function
 
