@@ -337,6 +337,9 @@ function clearCanvas(ctx, canvas) {
 }
 
 function setupDrawingCanvas(canvas, ctx) {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.round(rect.width);
+    canvas.height = Math.round(rect.height);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     clearCanvas(ctx, canvas);
@@ -353,8 +356,8 @@ function startDraw(e) {
     if (activeMode !== 'drawing') return;
     const rect = myDrawingCanvas.getBoundingClientRect();
     isDrawing = true;
-    lastX = (e.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
-    lastY = (e.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
@@ -376,8 +379,8 @@ function drawStroke(x, y) {
 function moveDraw(e) {
     if (!isDrawing || activeMode !== 'drawing') return;
     const rect = myDrawingCanvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
@@ -423,8 +426,8 @@ myDrawingCanvas.addEventListener('touchstart', (event) => {
     const touch = event.touches[0];
     const rect = myDrawingCanvas.getBoundingClientRect();
     isDrawing = true;
-    lastX = (touch.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
-    lastY = (touch.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    lastX = touch.clientX - rect.left;
+    lastY = touch.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
@@ -435,8 +438,8 @@ myDrawingCanvas.addEventListener('touchmove', (event) => {
     if (!isDrawing || activeMode !== 'drawing') return;
     const touch = event.touches[0];
     const rect = myDrawingCanvas.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
-    const y = (touch.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
