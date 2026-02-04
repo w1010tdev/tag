@@ -113,6 +113,13 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def csrf_protect_route(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        csrf.protect()
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Validation helpers
 def validate_username(username):
     """Validate username: 3-20 alphanumeric characters, underscores allowed"""
@@ -225,7 +232,7 @@ def refresh_token():
 
 @app.route('/memories/<int:connection_id>', methods=['POST'])
 @login_required
-@csrf.protect
+@csrf_protect_route
 def add_memory(connection_id):
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
@@ -246,7 +253,7 @@ def add_memory(connection_id):
 
 @app.route('/memories/<int:connection_id>/<int:memory_id>/approve', methods=['POST'])
 @login_required
-@csrf.protect
+@csrf_protect_route
 def approve_memory(connection_id, memory_id):
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
