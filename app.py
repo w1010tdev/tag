@@ -8,7 +8,9 @@ from flask_babel import Babel, gettext as _, get_locale
 import secrets
 import os
 import re
-from models import db_init, User, InviteToken, Connection, SharedClipboard, DrawingGame, DrawingSession, ChatMessage, ReadStatus
+import time
+from datetime import datetime
+from models import db_init, User, InviteToken, Connection, SharedClipboard, DrawingGame, DrawingSession, ChatMessage, ReadStatus, ConnectionMemory
 from functools import wraps
 from collections import defaultdict
 
@@ -112,6 +114,15 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def csrf_protect_route(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        response = csrf.protect()
+        if response is not None:
+            return response
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Validation helpers
 def validate_username(username):
     """Validate username: 3-20 alphanumeric characters, underscores allowed"""
@@ -127,6 +138,15 @@ def validate_connection_access(connection_id, user_id):
     """Check if user has access to this connection"""
     connection = Connection.get_by_id(connection_id)
     return connection and connection.involves_user(user_id)
+
+def validate_memory_date(value):
+    if not value:
+        return False
+    try:
+        datetime.strptime(value, '%Y-%m-%d')
+    except ValueError:
+        return False
+    return True
 
 # Routes
 @app.route('/')
@@ -213,6 +233,40 @@ def refresh_token():
     current_user.refresh_invite_token()
     return jsonify({'success': True})
 
+@app.route('/memories/<int:connection_id>', methods=['POST'])
+@login_required
+@csrf_protect_route
+def add_memory(connection_id):
+    connection = Connection.get_by_id(connection_id)
+    if not connection or not connection.involves_user(current_user.id):
+        return jsonify({'success': False, 'error': 'Connection not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    memory_text = (data.get('memory_text') or '').strip()
+    memory_date = (data.get('memory_date') or '').strip()
+
+    if not memory_text or len(memory_text) > 200:
+        return jsonify({'success': False, 'error': 'Invalid memory text'}), 400
+
+    if not validate_memory_date(memory_date):
+        return jsonify({'success': False, 'error': 'Invalid memory date'}), 400
+
+    memory_id = ConnectionMemory.create(connection_id, current_user.id, memory_text, memory_date)
+    return jsonify({'success': True, 'memory_id': memory_id})
+
+@app.route('/memories/<int:connection_id>/<int:memory_id>/approve', methods=['POST'])
+@login_required
+@csrf_protect_route
+def approve_memory(connection_id, memory_id):
+    connection = Connection.get_by_id(connection_id)
+    if not connection or not connection.involves_user(current_user.id):
+        return jsonify({'success': False, 'error': 'Connection not found'}), 404
+
+    if not ConnectionMemory.approve(connection_id, memory_id, current_user.id):
+        return jsonify({'success': False, 'error': 'Unable to approve memory'}), 400
+
+    return jsonify({'success': True})
+
 @app.route('/connect/<token>')
 @login_required
 def connect_with_token(token):
@@ -259,6 +313,20 @@ def clipboard(connection_id):
                          connection=connection, 
                          other_user=other_user,
                          clipboard_data=clipboard_data)
+
+@app.route('/memories/<int:connection_id>')
+@login_required
+def memories(connection_id):
+    connection = Connection.get_by_id(connection_id)
+    if not connection or not connection.involves_user(current_user.id):
+        return render_template('error.html', message='Connection not found')
+
+    other_user = connection.get_other_user(current_user.id)
+    memories = ConnectionMemory.get_for_connection(connection_id)
+    return render_template('memories.html',
+                           connection=connection,
+                           other_user=other_user,
+                           memories=memories)
 
 @app.route('/drawing/<int:connection_id>')
 @login_required
@@ -421,6 +489,44 @@ def handle_join_clipboard(data):
         return False
     join_room(f'clipboard_{connection_id}')
     return True
+
+@socketio.on('clipboard_drawing')
+def handle_clipboard_drawing(data):
+    connection_id = data.get('connection_id')
+    drawing = data.get('drawing', {})
+
+    if not validate_connection_access(connection_id, current_user.id):
+        return
+
+    if not isinstance(drawing, dict):
+        return
+
+    drawing_type = drawing.get('type')
+    if drawing_type not in {'draw', 'stroke_end', 'stroke_start', 'clear'}:
+        return
+
+    drawing['ts'] = time.time()
+
+    emit('clipboard_drawing_update', {
+        'user_id': current_user.id,
+        'drawing': drawing
+    }, room=f'clipboard_{connection_id}')
+
+@socketio.on('clipboard_sticker')
+def handle_clipboard_sticker(data):
+    connection_id = data.get('connection_id')
+    emoji = data.get('emoji')
+
+    if not validate_connection_access(connection_id, current_user.id):
+        return
+
+    if not isinstance(emoji, str) or len(emoji) > 32:
+        return
+
+    emit('clipboard_sticker_show', {
+        'user_id': current_user.id,
+        'emoji': emoji
+    }, room=f'clipboard_{connection_id}')
 
 @socketio.on('clipboard_update')
 def handle_clipboard_update(data):

@@ -360,6 +360,9 @@ function updateGuessesLeft(count) {
 
 function setupCanvas(canvasId) {
     canvas = document.getElementById(canvasId);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.round(rect.width);
+    canvas.height = Math.round(rect.height);
     ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     

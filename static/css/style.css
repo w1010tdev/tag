@@ -406,7 +406,7 @@ body {
 /* Clipboard */
 .clipboard-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-top: 2rem;
 }
@@ -416,6 +416,9 @@ body {
     border-radius: var(--border-radius);
     padding: 1.5rem;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .clipboard-pane.user-pane {
@@ -431,6 +434,66 @@ body {
 .clipboard-pane h3 {
     color: var(--primary-color);
     margin-bottom: 1rem;
+}
+
+.clipboard-display {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.clipboard-drawing-wrap {
+    display: none;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    background: #ffffff;
+    padding: 0.5rem;
+}
+
+.clipboard-drawing-wrap canvas {
+    width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+    background: #ffffff;
+    display: block;
+}
+
+.clipboard-pane.other-pane .clipboard-drawing-wrap {
+    background: #f5f3ff;
+    border-color: #c4b5fd;
+}
+
+.clipboard-display.drawing-active .clipboard-textarea {
+    display: none;
+}
+
+.clipboard-display.drawing-active .clipboard-drawing-wrap {
+    display: block;
+}
+
+.clipboard-display.drawing-active {
+    min-height: 360px;
+}
+
+.clipboard-pane.other-pane .clipboard-display.drawing-active {
+    min-height: 320px;
+}
+
+.clipboard-container.handwriting-mode {
+    grid-template-columns: 1fr;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.other-pane {
+    order: 1;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.user-pane {
+    order: 2;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
+    min-height: 180px;
 }
 
 .clipboard-textarea {
@@ -449,6 +512,214 @@ body {
     outline: none;
     border-color: var(--primary-color);
     background: white;
+}
+
+.clipboard-toolbar {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.toolbar-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.toolbar-btn {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: var(--dark-color);
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.toolbar-btn.active,
+.toolbar-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.toolbar-select {
+    position: relative;
+}
+
+.toolbar-dropdown {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    min-width: 160px;
+    display: none;
+    z-index: 10;
+    padding: 0.35rem;
+}
+
+.toolbar-dropdown.open {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+    background: #eef2ff;
+}
+
+.memory-pane {
+    background: #f9fafb;
+    border-left: 4px solid #6366f1;
+    transition: var(--transition);
+}
+
+.memory-pane.is-open {
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.15);
+}
+
+.memory-page {
+    margin-top: 1rem;
+}
+
+.memory-pane.standalone-memory {
+    box-shadow: 0 2px 10px rgba(30, 64, 175, 0.12);
+    border-left-color: #4f46e5;
+}
+
+.toolbar-btn.link-btn {
+    text-decoration: none;
+}
+
+.memory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.memory-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.memory-card.memory-approved {
+    border-color: #34d399;
+}
+
+.memory-card.memory-pending {
+    border-color: #fbbf24;
+}
+
+.memory-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.memory-text {
+    font-size: 0.95rem;
+    color: #1f2937;
+}
+
+.memory-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.memory-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.75rem;
+}
+
+.memory-form input,
+.memory-form textarea {
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.memory-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.clipboard-sticker-layer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 200;
+}
+
+.sticker-burst {
+    position: absolute;
+    bottom: 20px;
+    left: var(--sticker-start-x);
+    --sticker-shift: 0px;
+    font-size: 2.5rem;
+    color: #f97316;
+    animation: sticker-burst 1.6s ease-out forwards;
+    transform: translateX(0) translateY(0) scale(0.6);
+    opacity: 0;
+}
+
+.sticker-burst i {
+    font-size: 2.5rem;
+}
+
+@keyframes sticker-burst {
+    0% {
+        transform: translateX(0) translateY(0) scale(0.6);
+        opacity: 0;
+    }
+    30% {
+        opacity: 1;
+    }
+    70% {
+        transform: translateX(var(--sticker-shift)) translateY(-200px) scale(1.4);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(var(--sticker-shift)) translateY(-260px) scale(1.6);
+        opacity: 0;
+    }
 }
 
 /* Drawing Game */
@@ -796,6 +1067,59 @@ body {
     .clipboard-textarea {
         min-height: 150px;
         font-size: 0.9rem;
+    }
+
+    .clipboard-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .toolbar-group {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .toolbar-dropdown {
+        right: auto;
+        left: 0;
+    }
+
+    .clipboard-display.drawing-active {
+        min-height: 240px;
+    }
+
+    .clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
+        min-height: 140px;
+    }
+
+    .memory-pane {
+        display: none;
+    }
+
+    .memory-pane.is-open {
+        display: flex;
+    }
+
+    .memory-pane.standalone-memory {
+        display: flex;
+    }
+
+    .memory-page {
+        margin-top: 0.5rem;
+    }
+
+    .memory-list {
+        max-height: 240px;
+    }
+
+    .memory-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .memory-form {
+        padding-top: 0.5rem;
     }
     
     /* Dashboard optimizations */

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Memories with %(username)s', username=other_user.username) }} - {{ _('Social Connect') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-book-open"></i> {{ _('Memories with %(username)s', username=other_user.username) }}</h1>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> {{ _('Back') }}</a>
+        </div>
+    </div>
+
+    <div class="memory-page">
+        <div class="memory-pane standalone-memory">
+            <div class="memory-list">
+                {% if memories %}
+                    {% for memory in memories %}
+                    <div class="memory-card {{ 'memory-approved' if memory.status == 'approved' else 'memory-pending' }}" data-memory-id="{{ memory.id }}">
+                        <div class="memory-header">
+                            <span class="memory-date">{{ memory.memory_date }}</span>
+                            <span class="memory-status">
+                                {% if memory.status == 'approved' %}
+                                    <i class="fas fa-check-circle"></i> {{ _('Approved') }}
+                                {% else %}
+                                    <i class="fas fa-hourglass-half"></i> {{ _('Pending') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="memory-text">{{ memory.memory_text }}</div>
+                        <div class="memory-meta">
+                            <span>{{ _('By %(name)s', name=memory.creator_name) }}</span>
+                            {% if memory.status == 'approved' and memory.approver_name %}
+                                <span>{{ _('Confirmed by %(name)s', name=memory.approver_name) }}</span>
+                            {% endif %}
+                        </div>
+                        {% if memory.status != 'approved' and memory.creator_id != current_user.id %}
+                        <button type="button" class="btn btn-sm btn-primary approve-memory-btn" data-memory-id="{{ memory.id }}">
+                            <i class="fas fa-check"></i> {{ _('Approve') }}
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">{{ _('No memories yet. Add one below!') }}</p>
+                {% endif %}
+            </div>
+            <form class="memory-form" id="memory-form">
+                <label for="memory-date">{{ _('Date') }}</label>
+                <input type="date" id="memory-date" required>
+                <label for="memory-text">{{ _('Memory') }}</label>
+                <textarea id="memory-text" maxlength="200" placeholder="{{ _('Add a shared memory...') }}" required></textarea>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> {{ _('Add Memory') }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const memoryEndpoint = {{ url_for('add_memory', connection_id=connection.id) | tojson }};
+const approveEndpointTemplate = {{ url_for('approve_memory', connection_id=connection.id, memory_id=0) | tojson }};
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+const memoryForm = document.getElementById('memory-form');
+const memoryDateInput = document.getElementById('memory-date');
+const memoryTextInput = document.getElementById('memory-text');
+const approveButtons = document.querySelectorAll('.approve-memory-btn');
+
+memoryForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = {
+        memory_text: memoryTextInput.value.trim(),
+        memory_date: memoryDateInput.value
+    };
+    if (!payload.memory_text || !payload.memory_date) {
+        showNotification('{{ _('Please fill out the memory and date.') }}', 'warning', 2500);
+        return;
+    }
+    try {
+        const response = await fetch(memoryEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || '{{ _('Unable to add memory.') }}');
+        }
+        showNotification('{{ _('Memory submitted for review.') }}', 'success', 2500);
+        location.reload();
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+});
+
+approveButtons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const memoryId = btn.dataset.memoryId;
+        if (!memoryId) return;
+        try {
+            const response = await fetch(approveEndpointTemplate.replace('0/approve', `${memoryId}/approve`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || '{{ _('Unable to approve memory.') }}');
+            }
+            showNotification('{{ _('Memory approved!') }}', 'success', 2500);
+            location.reload();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

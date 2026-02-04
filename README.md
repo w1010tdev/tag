@@ -105,8 +105,14 @@ http://localhost:5000
 #### Shared Clipboard
 - Click "Clipboard" on any connection
 - Type in your text area - changes sync in real-time
+- Use the toolbar to switch between text, handwriting, moods, and stickers
 - See the other person's text updates instantly
 - Unread indicator shows when other person updates
+
+#### Memories
+- Click "Memories" on a connection (dashboard or connection page)
+- Add a memory with date and text (pending approval)
+- Approve a memory from the other user to make it official
 
 #### Drawing Game
 1. Click "Drawing" on any connection
