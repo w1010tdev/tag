@@ -8,6 +8,7 @@ from flask_babel import Babel, gettext as _, get_locale
 import secrets
 import os
 import re
+import time
 from datetime import datetime
 from models import db_init, User, InviteToken, Connection, SharedClipboard, DrawingGame, DrawingSession, ChatMessage, ReadStatus, ConnectionMemory
 from functools import wraps
@@ -504,9 +505,27 @@ def handle_clipboard_drawing(data):
     if drawing_type not in {'draw', 'stroke_end', 'stroke_start', 'clear'}:
         return
 
+    drawing['ts'] = time.time()
+
     emit('clipboard_drawing_update', {
         'user_id': current_user.id,
         'drawing': drawing
+    }, room=f'clipboard_{connection_id}')
+
+@socketio.on('clipboard_sticker')
+def handle_clipboard_sticker(data):
+    connection_id = data.get('connection_id')
+    emoji = data.get('emoji')
+
+    if not validate_connection_access(connection_id, current_user.id):
+        return
+
+    if not isinstance(emoji, str) or len(emoji) > 32:
+        return
+
+    emit('clipboard_sticker_show', {
+        'user_id': current_user.id,
+        'emoji': emoji
     }, room=f'clipboard_{connection_id}')
 
 @socketio.on('clipboard_update')

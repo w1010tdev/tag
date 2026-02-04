@@ -480,6 +480,22 @@ body {
     min-height: 320px;
 }
 
+.clipboard-container.handwriting-mode {
+    grid-template-columns: 1fr;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.other-pane {
+    order: 1;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.user-pane {
+    order: 2;
+}
+
+.clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
+    min-height: 180px;
+}
+
 .clipboard-textarea {
     width: 100%;
     min-height: 400px;
@@ -1070,6 +1086,10 @@ body {
 
     .clipboard-display.drawing-active {
         min-height: 240px;
+    }
+
+    .clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
+        min-height: 140px;
     }
 
     .memory-pane {

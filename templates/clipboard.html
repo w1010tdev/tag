@@ -99,6 +99,8 @@ let moodPrefix = '';
 let drawingPlaybackTimer = null;
 let drawingPoints = [];
 let otherDrawingHistory = [];
+let lastRemoteTimestamp = null;
+let lastMoodPrefix = '';
 let drawingIsComposing = false;
 let otherDrawingHasContent = false;
 let localDrawingHasContent = false;
@@ -219,6 +221,7 @@ function setActiveMode(mode) {
     const isDrawing = mode === 'drawing';
     myDisplay.classList.toggle('drawing-active', isDrawing);
     otherDisplay.classList.toggle('drawing-active', isDrawing || remoteDrawingActive);
+    document.querySelector('.clipboard-container').classList.toggle('handwriting-mode', isDrawing);
     if (!isDrawing) {
         stopDrawingPlayback();
         if (localDrawingHasContent) {
@@ -278,6 +281,7 @@ stickerMenu.querySelectorAll('.dropdown-item').forEach(item => {
     item.addEventListener('click', () => {
         const emoji = item.dataset.emoji;
         spawnSticker(emoji);
+        broadcastSticker(emoji);
         stickerMenu.classList.remove('open');
         stickerToggle.classList.remove('active');
     });
@@ -301,14 +305,24 @@ function spawnSticker(emoji) {
     sticker.addEventListener('animationend', () => sticker.remove());
 }
 
+function broadcastSticker(emoji) {
+    if (!roomJoined || !isSocketConnected) {
+        return;
+    }
+    socket.emit('clipboard_sticker', {
+        connection_id: connectionId,
+        emoji
+    });
+}
+
 function prependMoodPrefix(prefix, shouldSend) {
     if (!prefix) return;
-    if (!myClipboard.value.startsWith(prefix)) {
-        myClipboard.value = prefix + myClipboard.value;
-        lastLocalClipboard = myClipboard.value;
-        if (shouldSend) {
-            sendClipboardUpdate(myClipboard.value);
-        }
+    const newValue = myClipboard.value.replace(/^\[[^\]]+\]\s*/, '');
+    myClipboard.value = prefix + newValue;
+    lastLocalClipboard = myClipboard.value;
+    lastMoodPrefix = prefix;
+    if (shouldSend) {
+        sendClipboardUpdate(myClipboard.value);
     }
 }
 
@@ -339,8 +353,8 @@ function startDraw(e) {
     if (activeMode !== 'drawing') return;
     const rect = myDrawingCanvas.getBoundingClientRect();
     isDrawing = true;
-    lastX = e.clientX - rect.left;
-    lastY = e.clientY - rect.top;
+    lastX = (e.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
+    lastY = (e.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
@@ -354,14 +368,18 @@ function drawStroke(x, y) {
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(x, y);
     localDrawingHasContent = true;
+    lastX = x;
+    lastY = y;
     emitDrawing({ type: 'draw', x, y });
 }
 
 function moveDraw(e) {
     if (!isDrawing || activeMode !== 'drawing') return;
     const rect = myDrawingCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = (e.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    myDrawingCtx.beginPath();
+    myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
     lastX = x;
     lastY = y;
@@ -372,6 +390,8 @@ function endDraw() {
     isDrawing = false;
     myDrawingCtx.beginPath();
     emitDrawing({ type: 'stroke_end' });
+    lastX = 0;
+    lastY = 0;
 }
 
 function emitDrawing(drawing) {
@@ -400,8 +420,8 @@ myDrawingCanvas.addEventListener('touchstart', (event) => {
     const touch = event.touches[0];
     const rect = myDrawingCanvas.getBoundingClientRect();
     isDrawing = true;
-    lastX = touch.clientX - rect.left;
-    lastY = touch.clientY - rect.top;
+    lastX = (touch.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
+    lastY = (touch.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
     emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
@@ -412,8 +432,10 @@ myDrawingCanvas.addEventListener('touchmove', (event) => {
     if (!isDrawing || activeMode !== 'drawing') return;
     const touch = event.touches[0];
     const rect = myDrawingCanvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
+    const x = (touch.clientX - rect.left) * (myDrawingCanvas.width / rect.width);
+    const y = (touch.clientY - rect.top) * (myDrawingCanvas.height / rect.height);
+    myDrawingCtx.beginPath();
+    myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
 }, { passive: false });
 
@@ -439,6 +461,7 @@ function queueDrawingPoint(drawing) {
     if (drawing.type === 'stroke_start' || drawing.type === 'draw') {
         setRemoteDrawingActive(true);
     }
+    lastRemoteTimestamp = drawing.ts || lastRemoteTimestamp;
 }
 
 function stopDrawingPlayback() {
@@ -452,14 +475,42 @@ function stopDrawingPlayback() {
 function startDrawingPlayback() {
     if (drawingPlaybackTimer) return;
     isReplaying = true;
-    drawingPlaybackTimer = setInterval(() => {
+    const drawing = drawingPoints.shift();
+    if (!drawing) {
+        stopDrawingPlayback();
+        return;
+    }
+    renderDrawing(otherDrawingCtx, otherDrawingCanvas, drawing);
+    const next = drawingPoints[0];
+    const delay = Math.min(200, Math.max(12, computeDrawingDelay(drawing, next)));
+    startDrawingPlaybackWithDelay(delay);
+}
+
+function startDrawingPlaybackWithDelay(delay) {
+    if (drawingPlaybackTimer) return;
+    isReplaying = true;
+    drawingPlaybackTimer = setTimeout(() => {
+        drawingPlaybackTimer = null;
         if (drawingPoints.length === 0) {
             stopDrawingPlayback();
             return;
         }
         const drawing = drawingPoints.shift();
         renderDrawing(otherDrawingCtx, otherDrawingCanvas, drawing);
-    }, 40);
+        const next = drawingPoints[0];
+        const nextDelay = Math.min(200, Math.max(12, computeDrawingDelay(drawing, next)));
+        startDrawingPlaybackWithDelay(nextDelay);
+    }, delay);
+}
+
+function computeDrawingDelay(current, next) {
+    if (!current || !next) {
+        return 40;
+    }
+    if (!current.ts || !next.ts) {
+        return 40;
+    }
+    return (next.ts - current.ts) * 1000;
 }
 
 function renderDrawing(ctx, canvas, drawing) {
@@ -543,16 +594,22 @@ myClipboard.addEventListener('input', function(e) {
     }
     
     clearTimeout(timeout);
-    if (!drawingIsComposing && moodPrefix) {
-        const prefix = moodPrefix;
-        const hasPrefix = e.target.value.startsWith(prefix);
-        moodPrefix = '';
-        prependMoodPrefix(prefix, false);
-        if (!hasPrefix) {
-            const selectionStart = e.target.selectionStart;
-            const selectionEnd = e.target.selectionEnd;
-            const offset = prefix.length;
-            e.target.setSelectionRange(selectionStart + offset, selectionEnd + offset);
+    if (!drawingIsComposing) {
+        const prefixMatch = e.target.value.match(/^\[[^\]]+\]\s*/);
+        if (prefixMatch) {
+            lastMoodPrefix = prefixMatch[0];
+        }
+        if (moodPrefix) {
+            const prefix = moodPrefix;
+            const hasPrefix = e.target.value.startsWith(prefix);
+            moodPrefix = '';
+            prependMoodPrefix(prefix, false);
+            if (!hasPrefix) {
+                const selectionStart = e.target.selectionStart;
+                const selectionEnd = e.target.selectionEnd;
+                const offset = prefix.length;
+                e.target.setSelectionRange(selectionStart + offset, selectionEnd + offset);
+            }
         }
     }
     setRemoteDrawingActive(false);
@@ -613,6 +670,13 @@ socket.on('clipboard_drawing_update', function(data) {
     }
     queueDrawingPoint(data.drawing);
     startDrawingPlayback();
+});
+
+socket.on('clipboard_sticker_show', function(data) {
+    if (data.user_id === myUserId) {
+        return;
+    }
+    spawnSticker(data.emoji);
 });
 
 setActiveMode('text');
