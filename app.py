@@ -225,8 +225,8 @@ def refresh_token():
 
 @app.route('/memories/<int:connection_id>', methods=['POST'])
 @login_required
-@csrf.protect()
 def add_memory(connection_id):
+    csrf.protect()
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
         return jsonify({'success': False, 'error': 'Connection not found'}), 404
@@ -246,8 +246,8 @@ def add_memory(connection_id):
 
 @app.route('/memories/<int:connection_id>/<int:memory_id>/approve', methods=['POST'])
 @login_required
-@csrf.protect()
 def approve_memory(connection_id, memory_id):
+    csrf.protect()
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
         return jsonify({'success': False, 'error': 'Connection not found'}), 404
