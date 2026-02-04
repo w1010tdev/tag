@@ -450,7 +450,7 @@ body {
     background: #ffffff;
     padding: 0.5rem;
     flex: 1;
-    min-height: 300px;
+    min-height: 400px;
 }
 
 .clipboard-drawing-wrap canvas {
@@ -475,11 +475,11 @@ body {
 }
 
 .clipboard-display.drawing-active {
-    min-height: 360px;
+    min-height: 400px;
 }
 
 .clipboard-pane.other-pane .clipboard-display.drawing-active {
-    min-height: 320px;
+    min-height: 400px;
 }
 
 .clipboard-container.handwriting-mode {
@@ -495,7 +495,7 @@ body {
 }
 
 .clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
-    min-height: 180px;
+    min-height: 300px;
 }
 
 .clipboard-textarea {
@@ -1086,6 +1086,22 @@ body {
     .clipboard-textarea {
         min-height: 150px;
         font-size: 0.9rem;
+    }
+
+    .clipboard-drawing-wrap {
+        min-height: 150px;
+    }
+
+    .clipboard-display.drawing-active {
+        min-height: 150px;
+    }
+
+    .clipboard-pane.other-pane .clipboard-display.drawing-active {
+        min-height: 150px;
+    }
+
+    .clipboard-container.handwriting-mode .clipboard-pane.other-pane .clipboard-display.drawing-active {
+        min-height: 120px;
     }
 
     .clipboard-toolbar {

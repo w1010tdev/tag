@@ -586,19 +586,19 @@ function renderDrawing(ctx, canvas, drawing) {
         }
         return;
     }
-    if (drawing.type === 'stroke_end' || drawing.type === 'stroke_start') {
+    if (drawing.type === 'stroke_start') {
         ctx.beginPath();
-        if (drawing.type === 'stroke_start') {
-            ctx.moveTo(drawing.x, drawing.y);
-        }
+        ctx.moveTo(drawing.x, drawing.y);
         return;
     }
+    if (drawing.type === 'stroke_end') {
+        return;
+    }
+    // For 'draw' type - continue the current path
     ctx.lineWidth = 4;
     ctx.strokeStyle = '#1f2937';
     ctx.lineTo(drawing.x, drawing.y);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(drawing.x, drawing.y);
     if (ctx === otherDrawingCtx) {
         otherDrawingHasContent = true;
     }
