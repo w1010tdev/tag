@@ -228,10 +228,12 @@ function setActiveMode(mode) {
             clearMyDrawing();
         }
     } else if (!drawingPoints.length && otherDrawingHistory.length) {
-        refreshDrawingCanvases();
-        replayDrawingHistory();
+        setTimeout(() => {
+            refreshDrawingCanvases();
+            replayDrawingHistory();
+        }, 0);
     } else if (isDrawing) {
-        refreshDrawingCanvases();
+        setTimeout(refreshDrawingCanvases, 0);
     }
 }
 
@@ -340,7 +342,14 @@ function clearCanvas(ctx, canvas) {
 }
 
 function setupDrawingCanvas(canvas, ctx) {
-    const rect = canvas.parentElement.getBoundingClientRect();
+    const container = canvas.parentElement;
+    let rect = container.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
+        const display = canvas.closest('.clipboard-display');
+        if (display) {
+            rect = display.getBoundingClientRect();
+        }
+    }
     const width = Math.round(rect.width) || canvas.width || 600;
     const height = Math.round(rect.height) || canvas.height || 360;
     canvas.width = width;
@@ -356,6 +365,11 @@ function refreshDrawingCanvases() {
 }
 
 refreshDrawingCanvases();
+window.addEventListener('resize', () => {
+    if (activeMode === 'drawing' || remoteDrawingActive) {
+        refreshDrawingCanvases();
+    }
+});
 
 let isDrawing = false;
 let lastX = 0;
