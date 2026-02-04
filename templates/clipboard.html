@@ -228,7 +228,10 @@ function setActiveMode(mode) {
             clearMyDrawing();
         }
     } else if (!drawingPoints.length && otherDrawingHistory.length) {
+        refreshDrawingCanvases();
         replayDrawingHistory();
+    } else if (isDrawing) {
+        refreshDrawingCanvases();
     }
 }
 
@@ -338,15 +341,21 @@ function clearCanvas(ctx, canvas) {
 
 function setupDrawingCanvas(canvas, ctx) {
     const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = Math.round(rect.width);
-    canvas.height = Math.round(rect.height);
+    const width = Math.round(rect.width) || canvas.width || 600;
+    const height = Math.round(rect.height) || canvas.height || 360;
+    canvas.width = width;
+    canvas.height = height;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     clearCanvas(ctx, canvas);
 }
 
-setupDrawingCanvas(myDrawingCanvas, myDrawingCtx);
-setupDrawingCanvas(otherDrawingCanvas, otherDrawingCtx);
+function refreshDrawingCanvases() {
+    setupDrawingCanvas(myDrawingCanvas, myDrawingCtx);
+    setupDrawingCanvas(otherDrawingCanvas, otherDrawingCtx);
+}
+
+refreshDrawingCanvases();
 
 let isDrawing = false;
 let lastX = 0;
