@@ -203,7 +203,7 @@ def login():
             login_user(user)
             return redirect(url_for('dashboard'))
         
-        return render_template('login.html', error='Invalid credentials')
+        return render_template('login.html', error=_('Invalid credentials'))
     
     return render_template('login.html')
 
@@ -239,17 +239,17 @@ def refresh_token():
 def add_memory(connection_id):
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
-        return jsonify({'success': False, 'error': 'Connection not found'}), 404
+        return jsonify({'success': False, 'error': _('Connection not found')}), 404
 
     data = request.get_json(silent=True) or {}
     memory_text = (data.get('memory_text') or '').strip()
     memory_date = (data.get('memory_date') or '').strip()
 
     if not memory_text or len(memory_text) > 200:
-        return jsonify({'success': False, 'error': 'Invalid memory text'}), 400
+        return jsonify({'success': False, 'error': _('Invalid memory text')}), 400
 
     if not validate_memory_date(memory_date):
-        return jsonify({'success': False, 'error': 'Invalid memory date'}), 400
+        return jsonify({'success': False, 'error': _('Invalid memory date')}), 400
 
     memory_id = ConnectionMemory.create(connection_id, current_user.id, memory_text, memory_date)
     return jsonify({'success': True, 'memory_id': memory_id})
@@ -260,10 +260,10 @@ def add_memory(connection_id):
 def approve_memory(connection_id, memory_id):
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
-        return jsonify({'success': False, 'error': 'Connection not found'}), 404
+        return jsonify({'success': False, 'error': _('Connection not found')}), 404
 
     if not ConnectionMemory.approve(connection_id, memory_id, current_user.id):
-        return jsonify({'success': False, 'error': 'Unable to approve memory'}), 400
+        return jsonify({'success': False, 'error': _('Unable to approve memory')}), 400
 
     return jsonify({'success': True})
 
@@ -293,7 +293,7 @@ def connection_page(connection_id):
     connection = Connection.get_by_id(connection_id)
     
     if not connection or not connection.involves_user(current_user.id):
-        return render_template('error.html', message='Connection not found')
+        return render_template('error.html', message=_('Connection not found'))
     
     other_user = connection.get_other_user(current_user.id)
     return render_template('connection.html', connection=connection, other_user=other_user)
@@ -304,7 +304,7 @@ def clipboard(connection_id):
     connection = Connection.get_by_id(connection_id)
     
     if not connection or not connection.involves_user(current_user.id):
-        return render_template('error.html', message='Connection not found')
+        return render_template('error.html', message=_('Connection not found'))
     
     clipboard_data = SharedClipboard.get_by_connection(connection_id)
     other_user = connection.get_other_user(current_user.id)
@@ -319,7 +319,7 @@ def clipboard(connection_id):
 def memories(connection_id):
     connection = Connection.get_by_id(connection_id)
     if not connection or not connection.involves_user(current_user.id):
-        return render_template('error.html', message='Connection not found')
+        return render_template('error.html', message=_('Connection not found'))
 
     other_user = connection.get_other_user(current_user.id)
     memories = ConnectionMemory.get_for_connection(connection_id)
@@ -334,7 +334,7 @@ def drawing_game(connection_id):
     connection = Connection.get_by_id(connection_id)
     
     if not connection or not connection.involves_user(current_user.id):
-        return render_template('error.html', message='Connection not found')
+        return render_template('error.html', message=_('Connection not found'))
     
     game = DrawingGame.get_by_connection(connection_id)
     other_user = connection.get_other_user(current_user.id)
@@ -350,7 +350,7 @@ def chat(connection_id):
     connection = Connection.get_by_id(connection_id)
     
     if not connection or not connection.involves_user(current_user.id):
-        return render_template('error.html', message='Connection not found')
+        return render_template('error.html', message=_('Connection not found'))
     
     other_user = connection.get_other_user(current_user.id)
     messages = ChatMessage.get_messages(connection_id)
@@ -376,7 +376,7 @@ def admin_login():
         if secrets.compare_digest(password, admin_password):
             session['is_admin'] = True
             return redirect(url_for('admin_panel'))
-        return render_template('admin_login.html', error='Invalid password')
+        return render_template('admin_login.html', error=_('Invalid password'))
     
     return render_template('admin_login.html')
 
@@ -615,23 +615,23 @@ def handle_drawing_start(data):
     
     # Validate access
     if not validate_connection_access(connection_id, drawer_id):
-        return {'success': False, 'error': 'Access denied'}
+        return {'success': False, 'error': _('Access denied')}
     
     # Validate answer (limit to 50 characters)
     answer = answer.strip()[:50]
     if not answer:
-        return {'success': False, 'error': 'Answer required'}
+        return {'success': False, 'error': _('Answer required')}
     
     # Get or create session
     session = DrawingSession.get_active_session(connection_id)
     if not session:
-        return {'success': False, 'error': 'No active session'}
+        return {'success': False, 'error': _('No active session')}
     
     if session.waiting_for_partner:
-        return {'success': False, 'error': 'Waiting for partner to join'}
+        return {'success': False, 'error': _('Waiting for partner to join')}
     
     if session.is_session_complete():
-        return {'success': False, 'error': 'Session complete'}
+        return {'success': False, 'error': _('Session complete')}
     
     # Start the round
     session.start_next_round(drawer_id, answer)
@@ -721,15 +721,15 @@ def handle_end_game_early(data):
     session_id = data.get('session_id')
     
     if not validate_connection_access(connection_id, current_user.id):
-        return {'success': False, 'error': 'Access denied'}
+        return {'success': False, 'error': _('Access denied')}
     
     session = DrawingSession.get_by_id(session_id)
     if not session or session.connection_id != connection_id:
-        return {'success': False, 'error': 'Invalid session'}
+        return {'success': False, 'error': _('Invalid session')}
     
     # Ensure the session is still active
     if not session.is_active:
-        return {'success': False, 'error': 'Session is not active'}
+        return {'success': False, 'error': _('Session is not active')}
     
     # End the session
     session.end_session()
@@ -749,7 +749,7 @@ def handle_create_new_game_session(data):
     connection_id = data.get('connection_id')
     
     if not validate_connection_access(connection_id, current_user.id):
-        return {'success': False, 'error': 'Access denied'}
+        return {'success': False, 'error': _('Access denied')}
     
     # Create new session (this will deactivate old ones)
     session_id = DrawingSession.create(connection_id, current_user.id, DEFAULT_ROUNDS_PER_SESSION)
@@ -773,11 +773,11 @@ def handle_send_message(data):
     
     # Validate access
     if not validate_connection_access(connection_id, current_user.id):
-        return {'success': False, 'error': 'Access denied'}
+        return {'success': False, 'error': _('Access denied')}
     
     # Validate message length (max 1000 chars)
     if not message or len(message) > 1000:
-        return {'success': False, 'error': 'Invalid message'}
+        return {'success': False, 'error': _('Invalid message')}
     
     # Save message
     message_id = ChatMessage.create(connection_id, current_user.id, message)

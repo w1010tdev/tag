@@ -13,6 +13,7 @@
 
     <div class="memory-page">
         <div class="memory-pane standalone-memory">
+            <h3><i class="fas fa-list"></i> {{ _('Memory List') }}</h3>
             <div class="memory-list">
                 {% if memories %}
                     {% for memory in memories %}
@@ -45,6 +46,9 @@
                     <p class="empty-state">{{ _('No memories yet. Add one below!') }}</p>
                 {% endif %}
             </div>
+        </div>
+        <div class="memory-pane standalone-memory">
+            <h3><i class="fas fa-plus-circle"></i> {{ _('Add New Memory') }}</h3>
             <form class="memory-form" id="memory-form">
                 <label for="memory-date">{{ _('Date') }}</label>
                 <input type="date" id="memory-date" required>

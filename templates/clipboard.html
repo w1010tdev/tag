@@ -417,19 +417,18 @@ function startDraw(e) {
     lastY = e.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
-    emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
 }
 
 function drawStroke(x, y) {
     myDrawingCtx.lineWidth = 4;
+    myDrawingCtx.lineCap = 'round';
+    myDrawingCtx.lineJoin = 'round';
     myDrawingCtx.strokeStyle = '#1f2937';
     myDrawingCtx.lineTo(x, y);
     myDrawingCtx.stroke();
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(x, y);
     localDrawingHasContent = true;
-    lastX = x;
-    lastY = y;
     emitDrawing({ type: 'draw', x, y });
 }
 
@@ -438,8 +437,6 @@ function moveDraw(e) {
     const rect = myDrawingCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    myDrawingCtx.beginPath();
-    myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
     lastX = x;
     lastY = y;
@@ -487,7 +484,6 @@ myDrawingCanvas.addEventListener('touchstart', (event) => {
     lastY = touch.clientY - rect.top;
     myDrawingCtx.beginPath();
     myDrawingCtx.moveTo(lastX, lastY);
-    emitDrawing({ type: 'stroke_start', x: lastX, y: lastY });
 }, { passive: false });
 
 myDrawingCanvas.addEventListener('touchmove', (event) => {
@@ -497,9 +493,9 @@ myDrawingCanvas.addEventListener('touchmove', (event) => {
     const rect = myDrawingCanvas.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    myDrawingCtx.beginPath();
-    myDrawingCtx.moveTo(lastX, lastY);
     drawStroke(x, y);
+    lastX = x;
+    lastY = y;
 }, { passive: false });
 
 myDrawingCanvas.addEventListener('touchend', (event) => {
@@ -521,7 +517,7 @@ function queueDrawingPoint(drawing) {
         drawingPoints.push(drawing);
     }
     otherLastStroke = Date.now();
-    if (drawing.type === 'stroke_start' || drawing.type === 'draw') {
+    if (drawing.type === 'draw') {
         setRemoteDrawingActive(true);
     }
     lastRemoteTimestamp = drawing.ts || lastRemoteTimestamp;
@@ -586,21 +582,22 @@ function renderDrawing(ctx, canvas, drawing) {
         }
         return;
     }
-    if (drawing.type === 'stroke_end' || drawing.type === 'stroke_start') {
+    if (drawing.type === 'stroke_end') {
         ctx.beginPath();
-        if (drawing.type === 'stroke_start') {
-            ctx.moveTo(drawing.x, drawing.y);
-        }
         return;
     }
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#1f2937';
-    ctx.lineTo(drawing.x, drawing.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(drawing.x, drawing.y);
-    if (ctx === otherDrawingCtx) {
-        otherDrawingHasContent = true;
+    if (drawing.type === 'draw') {
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1f2937';
+        ctx.lineTo(drawing.x, drawing.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(drawing.x, drawing.y);
+        if (ctx === otherDrawingCtx) {
+            otherDrawingHasContent = true;
+        }
     }
 }
 

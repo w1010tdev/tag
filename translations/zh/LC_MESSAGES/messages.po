@@ -336,6 +336,14 @@ msgstr "还没有回忆，下面添加一个吧！"
 msgid "Date"
 msgstr "日期"
 
+#: templates/memories.html:16
+msgid "Memory List"
+msgstr "回忆列表"
+
+#: templates/memories.html:42
+msgid "Add New Memory"
+msgstr "添加新回忆"
+
 #: templates/memories.html:51
 msgid "Memory"
 msgstr "回忆"
@@ -367,6 +375,63 @@ msgstr "无法确认回忆。"
 #: templates/memories.html:117
 msgid "Memory approved!"
 msgstr "回忆已确认！"
+
+#: app.py:206
+msgid "Invalid credentials"
+msgstr "无效的凭证"
+
+#: app.py:249
+msgid "Invalid memory text"
+msgstr "无效的回忆内容"
+
+#: app.py:252
+msgid "Invalid memory date"
+msgstr "无效的回忆日期"
+
+#: app.py:242 app.py:263 app.py:296 app.py:307 app.py:322 app.py:337 app.py:353
+msgid "Connection not found"
+msgstr "未找到连接"
+
+#: app.py:266
+msgid "Unable to approve memory"
+msgstr "无法确认回忆"
+
+#: app.py:379
+msgid "Invalid password"
+msgstr "无效的密码"
+
+#: app.py:618 app.py:724 app.py:752 app.py:776
+msgid "Access denied"
+msgstr "拒绝访问"
+
+#: app.py:623
+msgid "Answer required"
+msgstr "需要提供答案"
+
+#: app.py:628
+msgid "No active session"
+msgstr "没有活动会话"
+
+#: app.py:631
+msgid "Waiting for partner to join"
+msgstr "等待对方加入"
+
+#: app.py:634
+msgid "Session complete"
+msgstr "会话已完成"
+
+#: app.py:728
+msgid "Invalid session"
+msgstr "无效的会话"
+
+#: app.py:732
+msgid "Session is not active"
+msgstr "会话未激活"
+
+#: app.py:780
+msgid "Invalid message"
+msgstr "无效的消息"
+
 #: templates/dashboard.html:58
 msgid "No connections yet. Share your invite token to connect with others!"
 msgstr "还没有连接。分享您的邀请令牌以与他人连接！"
